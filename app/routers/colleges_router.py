@@ -31,7 +31,7 @@ db_client.connect('college-predictor-dev')
 college_model = CollegeModel(db_client)
 college_service = CollegeService(college_model)
 
-@router.get("/colleges", response_model=list[CollegeSchema], dependencies=[Depends(validate_api_key)])
+@router.get("/colleges", response_model=dict, dependencies=[Depends(validate_api_key)])
 def get_colleges(
     mains_gen_rank: int = None,
     mains_cat_rank: int = None,
@@ -49,18 +49,37 @@ def get_colleges(
     iit_colleges = college_service.fetch_iit_colleges(
         adv_gen_rank=adv_gen_rank,
         adv_cat_rank=adv_cat_rank,
+        category=category,
+        margin=margin,
+        gender=gender,
+        state=state,
     )
+
     nit_colleges = college_service.fetch_nit_colleges(
         mains_gen_rank=mains_gen_rank,
         mains_cat_rank=mains_cat_rank,
+        category=category,
+        margin=margin,
+        gender=gender,
+        state=state,
     )
+
     iiit_colleges = college_service.fetch_iiit_colleges(
         mains_gen_rank=mains_gen_rank,
         mains_cat_rank=mains_cat_rank,
+        category=category,
+        margin=margin,
+        gender=gender,
+        state=state,
     )
+
     gfti_colleges = college_service.fetch_gfti_colleges(
         mains_gen_rank=mains_gen_rank,
         mains_cat_rank=mains_cat_rank,
+        category=category,
+        margin=margin,
+        gender=gender,
+        state=state,
     )
     return {
         "iit_colleges": iit_colleges,
