@@ -1,0 +1,88 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+venv/
+env/
+.venv/
+ENV/
+
+# Distribution / Packaging
+dist/
+build/
+*.egg-info
+*.egg
+.pytest_cache
+htmlcov/
+.tox/
+.coverage
+*.mo
+
+# OS or Editor Folders
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+*.exe
+*.dll
+*.obj
+*.lib
+*.exp
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+*.swp
+*.swo
+
+# Fastapi Specific (If needed)
+# Example: If you have static files that shouldn't be tracked
+# static/
+
+# Logs
+*.log
+
+# Temp files
+*.tmp
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Database files (if you're using a local db like sqlite)
+*.sqlite
+*.db
+*.sqlite3
+
+# Ignore compiled extensions
+*.so
+*.o
+*.dylib
+
+# Ignore coverage files
+.coverage
+coverage.xml
+
+# Ignore pyinstaller build artifacts
+build/
+dist/
+*.spec
+
+# Ignore virtual environment created by poetry
+.venv
+
+# Ignore node_modules if you use frontend framework alongside fastapi
+node_modules/
