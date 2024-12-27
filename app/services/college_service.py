@@ -38,9 +38,9 @@ class CollegeService:
                         and_conditions.extend(rank_conditions)
 
                     criteria["$or"].append({"$and": and_conditions})
-
+        print("Criteria: ", criteria)
         return self.college_model.get_colleges(criteria) if criteria["$or"] else []
-    
+
     def fetch_nit_colleges(self, mains_gen_rank=None, mains_cat_rank=None, category="OPEN", margin=0.5, gender="Gender-Neutral", state="AI"):
         criteria = {"$or": []}
         categories_to_check = ["OPEN", category] if category != "OPEN" else ["OPEN"]
@@ -77,7 +77,7 @@ class CollegeService:
                     criteria["$or"].append({"$and": and_conditions})
 
         return self.college_model.get_colleges(criteria) if criteria["$or"] else []
-    
+
     def fetch_iiit_colleges(self, mains_gen_rank=None, mains_cat_rank=None, category="OPEN", margin=0.5, gender="Gender-Neutral", state="AI"):
         criteria = {"$or": []}
         categories_to_check = ["OPEN", category] if category != "OPEN" else ["OPEN"]
