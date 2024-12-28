@@ -37,10 +37,10 @@ def get_colleges(
     mains_cat_rank: int = None,
     adv_gen_rank: int = None,
     adv_cat_rank: int = None,
-    margin: float = None,
-    category: str = None,
-    gender: str = None,
-    state: str = None
+    margin: float = 0.5,  # Default margin value set to 0.5
+    category: str = "OPEN",  # Default category set to OPEN
+    gender: str = "Gender-Neutral",  # Default gender set to Gender-Neutral
+    state: str = None  # Default state is None
 ):
     """
     Fetches colleges based on provided rank criteria.
