@@ -4,196 +4,75 @@ class CollegeService:
     def __init__(self, college_model: CollegeModel):
         self.college_model = college_model
 
-    def fetch_iit_colleges(self, adv_gen_rank=None, adv_cat_rank=None, category="OPEN", margin=0.5, gender="Gender-Neutral", state=None):
-        criteria = {"$or": []}
-        categories_to_check = ["OPEN", category] if category != "OPEN" else ["OPEN"]
-        genders_to_check = ["Gender-Neutral", gender] if gender != "Gender-Neutral" else ["Gender-Neutral"]
+    def fetch_iit_colleges(self, adv_gen_rank=None, adv_cat_rank=None, category=None, margin=None, gender=None, state=None):
+        if not (adv_gen_rank or adv_cat_rank):
+            return []
 
-        for cat in categories_to_check:
-            for gen in genders_to_check:
-                and_conditions = [
-                    {"category": cat},
-                    {"gender": gen},
-                    {"collegeType": "IIT"}  # Assuming the field for college type is 'collegeType'
-                ]
+        colleges = self.college_model.get_colleges({"collegeType": "IIT"})
+        # print(colleges)
+        filtered_colleges = []
+        for college in colleges:
+            opening_rank = college.get("openingRank")
+            closing_rank = college.get("closingRank")
+            required_gender = college.get("gender")
+            required_category = college.get("category")
+            required_state = college.get("state")
+            required_quota = college.get("quota")
 
-                rank_conditions = []
+            # Adjust ranks with margin
+            adjusted_opening_rank = int(opening_rank * (1 - margin))
+            adjusted_closing_rank = int(closing_rank * (1 + margin))
+            
+            if adv_gen_rank and category=="OPEN":
+                if required_gender=="Gender-Neutral" or required_gender==gender:
+                    if required_quota=="AI" or required_state==state:
+                        if adjusted_opening_rank< adv_gen_rank <adjusted_closing_rank:
+                            filtered_colleges.append(college)
+            
+            if adv_cat_rank and required_category==category:
+                if required_gender=="Gender-Neutral" or required_gender==gender:
+                    if required_quota=="AI" or required_state==state:
+                        if adjusted_opening_rank< adv_cat_rank <adjusted_closing_rank:
+                            filtered_colleges.append(college)
+        return filtered_colleges
+    
+    def fetch_mains_colleges(self, mains_gen_rank=None, mains_cat_rank=None, category=None, margin=None, gender=None, state=None):
+        if not (mains_gen_rank or mains_cat_rank):
+            return []
 
-                if adv_gen_rank is not None:
-                    rank_conditions.extend([
-                        {"openingRank": {"$lte": adv_gen_rank + int(adv_gen_rank * margin)}},
-                        {"closingRank": {"$gte": adv_gen_rank - int(adv_gen_rank * margin)}}
-                    ])
+        colleges = self.college_model.get_colleges({"collegeType": { "$ne": "IIT" }})
+        # print(colleges)
+        filtered_nit_colleges = []
+        filtered_iiit_colleges = []
+        filtered_gfti_colleges = []
+        for college in colleges:
+            print("College type: ", college["collegeType"])
+            opening_rank = college.get("openingRank")
+            closing_rank = college.get("closingRank")
+            required_gender = college.get("gender")
+            required_category = college.get("category")
+            required_state = college.get("state")
+            required_quota = college.get("quota")
+            collegeType = college.get("collegeType")
 
-                if adv_cat_rank is not None:
-                    rank_conditions.extend([
-                        {"openingRank": {"$lte": adv_cat_rank + int(adv_cat_rank * margin)}},
-                        {"closingRank": {"$gte": adv_cat_rank - int(adv_cat_rank * margin)}}
-                    ])
-
-                if rank_conditions:
-                    and_conditions.extend(rank_conditions)
-
-                if state is not None:
-                    # Check if quota is 'AI', in which case include irrespective of state
-                    criteria["$or"].append({
-                        "$and": and_conditions + [{"$or": [{"quota": "AI"}, {"state": state}]}]
-                    })
-                else:
-                    # If no state is provided, include all entries
-                    criteria["$or"].append({
-                        "$and": and_conditions
-                    })
-
-        print("Criteria: ", criteria)
-        return self.college_model.get_colleges(criteria) if criteria["$or"] else []
-
-    def fetch_nit_colleges(
-        self, 
-        mains_gen_rank=None, 
-        mains_cat_rank=None, 
-        category="OPEN", 
-        margin=0.5, 
-        gender="Gender-Neutral", 
-        state=None
-    ):
-        criteria = {"$or": []}
-        categories_to_check = ["OPEN", category] if category != "OPEN" else ["OPEN"]
-        genders_to_check = ["Gender-Neutral", gender] if gender != "Gender-Neutral" else ["Gender-Neutral"]
-
-        for cat in categories_to_check:
-            for gen in genders_to_check:
-                and_conditions = [
-                    {"category": cat},
-                    {"gender": gen},
-                    {"collegeType": "NIT"}  # Assuming 'collegeType' is the correct field
-                ]
-
-                rank_conditions = []
-
-                if mains_gen_rank is not None:
-                    rank_conditions.extend([
-                        {"openingRank": {"$lte": mains_gen_rank + int(mains_gen_rank * margin)}},
-                        {"closingRank": {"$gte": mains_gen_rank - int(mains_gen_rank * margin)}}
-                    ])
-
-                if mains_cat_rank is not None:
-                    rank_conditions.extend([
-                        {"openingRank": {"$lte": mains_cat_rank + int(mains_cat_rank * margin)}},
-                        {"closingRank": {"$gte": mains_cat_rank - int(mains_cat_rank * margin)}}
-                    ])
-
-                if rank_conditions:
-                    and_conditions.extend(rank_conditions)
-
-                if state is not None:
-                    criteria["$or"].append({
-                        "$and": and_conditions + [{"$or": [{"quota": "AI"}, {"state": state}]}]
-                    })
-                else:
-                    criteria["$or"].append({
-                        "$and": and_conditions
-                    })
-
-        print("Criteria: ", criteria)
-        return self.college_model.get_colleges(criteria) if criteria["$or"] else []
-
-    def fetch_iiit_colleges(
-        self, 
-        mains_gen_rank=None, 
-        mains_cat_rank=None, 
-        category="OPEN", 
-        margin=0.5, 
-        gender="Gender-Neutral", 
-        state=None
-    ):
-        criteria = {"$or": []}
-        categories_to_check = ["OPEN", category] if category != "OPEN" else ["OPEN"]
-        genders_to_check = ["Gender-Neutral", gender] if gender != "Gender-Neutral" else ["Gender-Neutral"]
-
-        for cat in categories_to_check:
-            for gen in genders_to_check:
-                and_conditions = [
-                    {"category": cat},
-                    {"gender": gen},
-                    {"collegeType": "IIIT"}  # Assuming 'collegeType' is the correct field
-                ]
-
-                rank_conditions = []
-
-                if mains_gen_rank is not None:
-                    rank_conditions.extend([
-                        {"openingRank": {"$lte": mains_gen_rank + int(mains_gen_rank * margin)}},
-                        {"closingRank": {"$gte": mains_gen_rank - int(mains_gen_rank * margin)}}
-                    ])
-
-                if mains_cat_rank is not None:
-                    rank_conditions.extend([
-                        {"openingRank": {"$lte": mains_cat_rank + int(mains_cat_rank * margin)}},
-                        {"closingRank": {"$gte": mains_cat_rank - int(mains_cat_rank * margin)}}
-                    ])
-
-                if rank_conditions:
-                    and_conditions.extend(rank_conditions)
-
-                if state is not None:
-                    criteria["$or"].append({
-                        "$and": and_conditions + [{"$or": [{"quota": "AI"}, {"state": state}]}]
-                    })
-                else:
-                    criteria["$or"].append({
-                        "$and": and_conditions
-                    })
-
-        print("Criteria: ", criteria)
-        return self.college_model.get_colleges(criteria) if criteria["$or"] else []
-
-    def fetch_gfti_colleges(
-        self, 
-        mains_gen_rank=None, 
-        mains_cat_rank=None, 
-        category="OPEN", 
-        margin=0.5, 
-        gender="Gender-Neutral", 
-        state=None
-    ):
-        criteria = {"$or": []}
-        categories_to_check = ["OPEN", category] if category != "OPEN" else ["OPEN"]
-        genders_to_check = ["Gender-Neutral", gender] if gender != "Gender-Neutral" else ["Gender-Neutral"]
-
-        for cat in categories_to_check:
-            for gen in genders_to_check:
-                and_conditions = [
-                    {"category": cat},
-                    {"gender": gen},
-                    {"collegeType": "GFTI"}  # Assuming 'collegeType' is the correct field
-                ]
-
-                rank_conditions = []
-
-                if mains_gen_rank is not None:
-                    rank_conditions.extend([
-                        {"openingRank": {"$lte": mains_gen_rank + int(mains_gen_rank * margin)}},
-                        {"closingRank": {"$gte": mains_gen_rank - int(mains_gen_rank * margin)}}
-                    ])
-
-                if mains_cat_rank is not None:
-                    rank_conditions.extend([
-                        {"openingRank": {"$lte": mains_cat_rank + int(mains_cat_rank * margin)}},
-                        {"closingRank": {"$gte": mains_cat_rank - int(mains_cat_rank * margin)}}
-                    ])
-
-                if rank_conditions:
-                    and_conditions.extend(rank_conditions)
-
-                if state is not None:
-                    criteria["$or"].append({
-                        "$and": and_conditions + [{"$or": [{"quota": "AI"}, {"state": state}]}]
-                    })
-                else:
-                    criteria["$or"].append({
-                        "$and": and_conditions
-                    })
-
-        print("Criteria: ", criteria)
-        return self.college_model.get_colleges(criteria) if criteria["$or"] else []
+            # Adjust ranks with margin
+            adjusted_opening_rank = int(opening_rank * (1 - margin))
+            adjusted_closing_rank = int(closing_rank * (1 + margin))
+            
+            if mains_gen_rank and category=="OPEN":
+                if required_gender=="Gender-Neutral" or required_gender==gender:
+                    if required_quota=="AI" or required_state==state:
+                        if adjusted_opening_rank< mains_gen_rank <adjusted_closing_rank:
+                            if collegeType == "NIT":
+                                filtered_nit_colleges.append(college)
+                            elif collegeType == "IIIT":
+                                filtered_iiit_colleges.append(college)
+                            elif collegeType == "GFTI":
+                                filtered_gfti_colleges.append(college)
+            
+            if mains_cat_rank and required_category==category:
+                if required_gender=="Gender-Neutral" or required_gender==gender:
+                    if required_quota=="AI" or required_state==state:
+                        if adjusted_opening_rank< mains_cat_rank <adjusted_closing_rank:
+                            filtered_nit_colleges.append(college)
+        return filtered_nit_colleges, filtered_iiit_colleges, filtered_gfti_colleges
