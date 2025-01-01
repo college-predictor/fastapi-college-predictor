@@ -20,8 +20,8 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(colleges_router.router, prefix="/", tags=["Colleges"])
-# app.include_router(news_router.router, prefix="/", tags=["News"])
+app.include_router(colleges_router.router, prefix="/api", tags=["Colleges"])
+# app.include_router(news_router.router, prefix="/api", tags=["News"])
 
 # Health check endpoint
 @app.get("/")
