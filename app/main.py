@@ -24,6 +24,6 @@ app.include_router(colleges_router.router, prefix="/api", tags=["Colleges"])
 # app.include_router(news_router.router, prefix="/api", tags=["News"])
 
 # Health check endpoint
-@app.get("/")
+@app.get("/api")
 def read_root():
     return {"message": "Welcome to the College and News API!"}
