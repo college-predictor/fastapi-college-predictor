@@ -27,7 +27,7 @@ router = APIRouter()
 
 # Initialize database and service
 db_client = MongoDB()
-db_client.connect('college-predictor-dev')
+db_client.connect()
 college_model = CollegeModel(db_client)
 college_service = CollegeService(college_model)
 
@@ -40,7 +40,8 @@ def get_colleges(
     margin: float = 0.3,  # Default margin value set to 0.5
     category: str = "OPEN",  # Default category set to OPEN
     gender: str = "Gender-Neutral",  # Default gender set to Gender-Neutral
-    state: str = None  # Default state is None
+    state: str = None,  # Default state is None
+    year: int = 2024
 ):
     """
     Fetches colleges based on provided rank criteria.
@@ -53,6 +54,7 @@ def get_colleges(
         margin=margin,
         gender=gender,
         state=state,
+        year=year
     )
 
     nit_colleges, iiit_colleges, gfti_colleges = college_service.fetch_mains_colleges(
@@ -62,6 +64,7 @@ def get_colleges(
         margin=margin,
         gender=gender,
         state=state,
+        year=year
     )
 
     return {

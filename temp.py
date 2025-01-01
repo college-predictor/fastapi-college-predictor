@@ -376,7 +376,7 @@ sample_colleges = [
         "courseType": "B.Tech",
         "collegeType": "IIIT",
         "collegeName": "International Institute of Information Technology Bangalore",
-        "instituteCode": 302,  # Duplicate instituteCode for illustrative purposes
+        "instituteCode": 302,
         "state": "Karnataka",
         "gender": "Gender-Neutral",
         "quota": "AI",
@@ -552,7 +552,7 @@ class MongoDB:
         username = os.getenv('MONGODB_NAME')
         password = os.getenv('MONGODB_PASS')
         mongo_uri = os.getenv('MONGO_URI')
-        self.uri = mongo_uri.format(username=username, password=password)
+        self.uri = mongo_uri.format(username=username, password=password, db_name="college-predictor-dev")
         self.client = None
         self.database = None
 

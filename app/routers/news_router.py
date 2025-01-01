@@ -7,7 +7,7 @@ from app.services.news_today_service import NewsService
 router = APIRouter()
 
 db_client = MongoDB()
-db_client.connect('college-predictor-dev')
+db_client.connect()
 news_model = NewsModel(db_client)
 news_service = NewsService(news_model)
 
