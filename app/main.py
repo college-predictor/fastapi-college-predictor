@@ -20,10 +20,10 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(colleges_router.router, prefix="/api", tags=["Colleges"])
-# app.include_router(news_router.router, prefix="/api", tags=["News"])
+app.include_router(colleges_router.router, prefix="/", tags=["Colleges"])
+# app.include_router(news_router.router, prefix="/", tags=["News"])
 
 # Health check endpoint
-@app.get("/api")
+@app.get("/")
 def read_root():
     return {"message": "Welcome to the College and News API!"}
