@@ -77,4 +77,4 @@ class CollegeService:
                     if required_quota=="OS" or required_state==state:
                         if adjusted_opening_rank< mains_cat_rank <adjusted_closing_rank:
                             filtered_nit_colleges.append(college)
-        return filtered_nit_colleges, filtered_iiit_colleges, filtered_gfti_colleges
+        return [filtered_nit_colleges, filtered_iiit_colleges, filtered_gfti_colleges]
