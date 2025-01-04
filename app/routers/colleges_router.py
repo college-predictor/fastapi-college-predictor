@@ -16,7 +16,7 @@
 #     return college_service.fetch_colleges(mains_gen_rank, mains_cat_rank, adv_gen_rank, adv_cat_rank)
 
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from typing import List, Dict
 from app.schemas.college_schema import CollegeSchema
 from app.config.database import MongoDB
@@ -33,7 +33,6 @@ college_service = CollegeService(college_model)
 
 @router.get("/colleges", response_model=dict)
 def get_colleges(
-    request: Request,  # Include the Request object for debugging
     mains_gen_rank: int = None,
     mains_cat_rank: int = None,
     adv_gen_rank: int = None,
@@ -42,16 +41,12 @@ def get_colleges(
     category: str = "OPEN",  # Default category set to OPEN
     gender: str = "Gender-Neutral",  # Default gender set to Gender-Neutral
     state: str = None,  # Default state is None
-    year: int = 2024,
+    year: int = 2024
 ):
     """
     Fetches colleges based on provided rank criteria.
     API key validation is required.
     """
-    # Log incoming query parameters for debugging
-    query_params = request.query_params
-    print(f"Incoming query parameters: {query_params}")
-    
     iit_colleges = college_service.fetch_iit_colleges(
         adv_gen_rank=adv_gen_rank,
         adv_cat_rank=adv_cat_rank,
