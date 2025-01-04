@@ -47,6 +47,18 @@ def get_colleges(
     Fetches colleges based on provided rank criteria.
     API key validation is required.
     """
+    print({
+        "mains_gen_rank": mains_gen_rank,
+        "mains_cat_rank": mains_cat_rank,
+        "adv_gen_rank": adv_gen_rank,
+        "adv_cat_rank": adv_cat_rank,
+        "margin": margin,
+        "category": category,
+        "gender": gender,
+        "state": state,
+        "year": year
+    })
+    
     iit_colleges = college_service.fetch_iit_colleges(
         adv_gen_rank=adv_gen_rank,
         adv_cat_rank=adv_cat_rank,
