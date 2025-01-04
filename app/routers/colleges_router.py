@@ -57,7 +57,7 @@ def get_colleges(
         year=year
     )
 
-    nit_colleges, iiit_colleges, gfti_colleges = college_service.fetch_mains_colleges(
+    x = college_service.fetch_mains_colleges(
         mains_gen_rank=mains_gen_rank,
         mains_cat_rank=mains_cat_rank,
         category=category,
@@ -69,7 +69,8 @@ def get_colleges(
 
     return {
         "iit_colleges": iit_colleges,
-        "nit_colleges": nit_colleges,
-        "iiit_colleges": iiit_colleges,
-        "gfti_colleges": gfti_colleges,
+        # "nit_colleges": nit_colleges,
+        # "iiit_colleges": iiit_colleges,
+        # "gfti_colleges": gfti_colleges,
+        "x": x
     }

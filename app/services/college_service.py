@@ -36,7 +36,7 @@ class CollegeService:
                             filtered_colleges.append(college)
         return filtered_colleges
     
-    def fetch_mains_colleges(self, mains_gen_rank=None, mains_cat_rank=None, category=None, margin=None, gender=None, state=None, year=None) -> list[dict]:
+    def fetch_mains_colleges(self, mains_gen_rank=None, mains_cat_rank=None, category=None, margin=None, gender=None, state=None, year=None):
         if not (mains_gen_rank or mains_cat_rank):
             return []
 
