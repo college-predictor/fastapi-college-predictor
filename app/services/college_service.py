@@ -36,7 +36,7 @@ class CollegeService:
                             filtered_colleges.append(college)
         return filtered_colleges
     
-    def fetch_mains_colleges(self, mains_gen_rank=None, mains_cat_rank=None, category=None, margin=None, gender=None, state=None, year=None):
+    def fetch_mains_colleges(self, mains_gen_rank=None, mains_cat_rank=None, category=None, margin=None, gender=None, state=None, year=None) -> list[dict]:
         if not (mains_gen_rank or mains_cat_rank):
             return []
 
@@ -77,5 +77,4 @@ class CollegeService:
                     if required_quota=="OS" or required_state==state:
                         if adjusted_opening_rank< mains_cat_rank <adjusted_closing_rank:
                             filtered_nit_colleges.append(college)
-        print(filtered_nit_colleges, filtered_iiit_colleges, filtered_gfti_colleges)
         return filtered_nit_colleges, filtered_iiit_colleges, filtered_gfti_colleges
