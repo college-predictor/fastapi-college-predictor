@@ -38,6 +38,7 @@ class CollegeService:
     
     def fetch_mains_colleges(self, mains_gen_rank=None, mains_cat_rank=None, category=None, margin=None, gender=None, state=None, year=None):
         if not (mains_gen_rank or mains_cat_rank):
+            print("mains_gen_rank", mains_gen_rank, "mains_cat_rank", mains_cat_rank)
             return [[], [], []]
 
         colleges = self.college_model.get_colleges({"collegeType": { "$ne": "IIT" }}, year)
