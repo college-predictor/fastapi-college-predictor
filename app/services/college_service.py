@@ -45,7 +45,7 @@ class CollegeService:
         filtered_nit_colleges = []
         filtered_iiit_colleges = []
         filtered_gfti_colleges = []
-        print(mains_cat_rank)
+        # print(mains_cat_rank)
         for college in colleges:
             # print("College type: ", college["collegeType"])
             opening_rank = college.get("openingRank")
