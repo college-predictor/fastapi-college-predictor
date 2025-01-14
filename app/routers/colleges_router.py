@@ -1,24 +1,4 @@
-# from fastapi import APIRouter, Depends
-# from app.schemas.college_schema import CollegeSchema
-# from app.config.database import MongoDB
-# from app.models.college_model import CollegeModel
-# from app.services.college_service import CollegeService
-
-# router = APIRouter()
-
-# db_client = MongoDB()
-# db_client.connect('college-predictor-dev')
-# college_model = CollegeModel(db_client)
-# college_service = CollegeService(college_model)
-
-# @router.get("/colleges", response_model=list[CollegeSchema])
-# def get_colleges(mains_gen_rank: int = None, mains_cat_rank: int = None, adv_gen_rank: int = None, adv_cat_rank: int = None):
-#     return college_service.fetch_colleges(mains_gen_rank, mains_cat_rank, adv_gen_rank, adv_cat_rank)
-
-
 from fastapi import APIRouter
-from typing import List, Dict
-from app.schemas.college_schema import CollegeSchema
 from app.config.database import MongoDB
 from app.models.college_model import CollegeModel
 from app.services.college_service import CollegeService
