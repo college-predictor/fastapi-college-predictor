@@ -1,12 +1,17 @@
 from pydantic import BaseModel
-from typing import List
+from typing import Dict
 
 class CollegeSchema(BaseModel):
-    id: int
+    id: str
     courseName: str
     courseType: str
+    collegeType: str
     collegeName: str
-    seatType: str
+    instituteCode: int
+    state: str
+    gender: str
+    quota: str
+    category: str
     openingRank: int
     closingRank: int
     profileImage: str
@@ -16,4 +21,5 @@ class CollegeSchema(BaseModel):
     collegeLifeRating: float
     campusRating: float
     aiSummary: str
-    contactInfo: dict
+    year: int
+    contactInfo: Dict[str, str]
