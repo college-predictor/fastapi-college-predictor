@@ -4,3 +4,4 @@ openai
 google-generativeai
 python-dotenv
 chromadb
+googlesearch-python

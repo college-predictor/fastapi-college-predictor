@@ -35,10 +35,7 @@ class OpenAIChatbot:
         """
         Adds a message to the conversation history.
         """
-        if isinstance(content, dict):
-            self.conversation.append({"role": role, "content": content})
-        else:
-            self.conversation.append({"role": role, "content": content})
+        self.conversation.append({"role": role, "content": content})
 
     def generate_text_response(self, prompt: str) -> str:
         """
@@ -80,13 +77,17 @@ class OpenAIChatbot:
         Analyze an image and return the response.
         """
         # Add user message with both text and image content
-        self.add_message("user", f"{prompt} Here's the image: {image_url}")
+        content = [
+            {"type": "text", "text": prompt},
+            {"type": "image_url", "image_url": {"url": image_url}}
+        ]
+        self.add_message("user", content)
 
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=self.conversation,
-                max_completion_tokens=300
+                max_tokens=300
             )
             # print("Assistant response image: ", response)
             # Extract the response content
@@ -123,18 +124,18 @@ if __name__ == "__main__":
     bot = OpenAIChatbot(api_key=api_key, model="gpt-4o")
 
     # Example: Text-based response
-    # text_response = bot.generate_text_response("Tell me a joke.")
-    # print("Text Response:", text_response)
-    #
-    # # Example: JSON-based response
-    # json_response = bot.generate_json_response("Summarize the latest news in JSON format.")
-    # print("JSON Response:", json_response)
+    text_response = bot.generate_text_response("Tell me a joke.")
+    print("Text Response:", text_response)
+
+    # Example: JSON-based response
+    json_response = bot.generate_json_response("convert this given joke in JSON format.")
+    print("JSON Response:", json_response)
 
     # # Example: Image analysis
     # image_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
     # image_response = bot.analyze_image(image_url)
     # print("Image Analysis Response:", image_response)
-
-    # Example: Stream response
-    for chunk in bot.stream_response("Explain quantum mechanics briefly."):
-        print(chunk, end="")
+    #
+    # # Example: Stream response
+    # for chunk in bot.stream_response("Explain quantum mechanics briefly."):
+    #     print(chunk, end="")
