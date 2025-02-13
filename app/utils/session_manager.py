@@ -20,10 +20,11 @@ SESSION_TTL = 60 * 60  # e.g., 60 minutes
 
 def compute_hash(messages: list) -> str:
     """
-    Compute a simple MD5 hash of the conversation messages.
+    Compute a hash of the conversation using a consistent serialization format.
     """
-    messages_str = json.dumps(messages, separators=(',', ':'))
+    messages_str = json.dumps(messages, ensure_ascii=False, separators=(',', ':'), sort_keys=True)  # Enforce consistent order
     return hashlib.md5(messages_str.encode("utf-8")).hexdigest()
+
 
 
 def check_session(chat_id) -> bool:
@@ -37,7 +38,7 @@ def check_session(chat_id) -> bool:
     return False
 
 
-def get_session(chat_id: str):
+def get_session(chat_id: str) -> OpenAIChatbot:
     """
     Retrieve an existing session and update its last-used timestamp.
     """

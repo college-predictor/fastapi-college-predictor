@@ -36,13 +36,16 @@ async def generate_text(chat_req: ChatRequest):
 
     # Check if a session for the given chat_id already exists
     if check_session(chat_req.chat_id):
+        print("Session exists")
         chatbot = get_session(chat_req.chat_id)
 
         if chat_req.sync_required:
+            print("Syncing full conversation")
             # Replace the conversation with the client’s full conversation if requested
             chatbot.conversation = chat_req.messages
 
         if not chat_req.chat_hash:
+            print("No hash provided. Sync required.")
             return JSONResponse(
                 status_code=409,
                 content={
@@ -53,9 +56,15 @@ async def generate_text(chat_req: ChatRequest):
 
         # Verify that the client’s conversation hash matches our session’s conversation
         if chat_req.chat_hash == compute_hash(chatbot.conversation):
+            print("Hash matched. Generating response.")
             response_text = chatbot.generate_text_response(chat_req.prompt)
             return {"response": response_text}
         else:
+            print("Hash mismatch. Sync required.")
+            print("Client hash:", chat_req.chat_hash)
+            print("Server hash:", compute_hash(chatbot.conversation))
+            print("Client conversation:", chat_req.messages)
+            print("Server conversation:", chatbot.conversation)
             return JSONResponse(
                 status_code=409,
                 content={
