@@ -3,11 +3,12 @@ import logging
 from openai import OpenAI
 
 class OpenAIChatbot:
-    def __init__(self, api_key: str, model: str = "gpt-4o"):
+    def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
         self.client = OpenAI(api_key=api_key)
         self.model = model
         # Initialize conversation with a system prompt.
         self.conversation = []
+        self.researches = []
         logging.debug("Initialized OpenAIChatbot with default system prompt.")
 
     def add_message(self, role: str, content: str):
@@ -21,7 +22,7 @@ class OpenAIChatbot:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=self.conversation,
-                max_tokens=150,
+                max_tokens=300,
             )
             assistant_response = response.choices[0].message.content
             self.add_message("assistant", assistant_response)
@@ -30,20 +31,20 @@ class OpenAIChatbot:
         except Exception as e:
             logging.exception("Error generating text response")
             return f"Error generating response: {e}"
-
-    def stream_response(self, prompt: str):
+        
+    def generate_research_response(self, prompt: str) -> str:
         self.add_message("user", prompt)
         try:
-            logging.debug(f"Starting to stream response for prompt: {prompt}")
-            completion = self.client.chat.completions.create(
+            logging.debug(f"Generating research response for prompt: {prompt}")
+            response = self.client.chat.completions.create(
                 model=self.model,
                 messages=self.conversation,
-                stream=True
+                max_tokens=300,
             )
-            for chunk in completion:
-                chunk_text = chunk.choices[0].delta.content
-                logging.debug(f"Streaming chunk: {chunk_text}")
-                yield chunk_text
+            assistant_response = response.choices[0].message.content
+            self.add_message("assistant", assistant_response)
+            logging.debug(f"Received research response: {assistant_response}")
+            return assistant_response
         except Exception as e:
-            logging.exception("Error streaming response")
-            yield f"Error streaming response: {e}"
+            logging.exception("Error generating research response")
+            return f"Error generating response: {e}"
