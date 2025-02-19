@@ -22,7 +22,9 @@ def compute_hash(messages: list) -> str:
     """
     Compute a hash of the conversation using a consistent serialization format.
     """
-    messages_str = json.dumps(messages, ensure_ascii=False, separators=(',', ':'), sort_keys=True)  # Enforce consistent order
+    messages_str = ""
+    for message in messages:
+        messages_str += message["content"]
     return hashlib.md5(messages_str.encode("utf-8")).hexdigest()
 
 
