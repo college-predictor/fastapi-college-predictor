@@ -1,6 +1,7 @@
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
+import certifi
 import os
 
 class MongoDB:
@@ -22,7 +23,11 @@ class MongoDB:
         Connects to the specified database using the MongoDB URI and ServerApi.
         """
         try:
-            self.client = MongoClient(self.uri, server_api=ServerApi('1'))
+            self.client = MongoClient(
+                self.uri, 
+                server_api=ServerApi('1'),
+                tlsCAFile=certifi.where()  # Use certifi for SSL verification
+                )
             self.database = self.client.get_database(self.db_name)
             self.client.admin.command('ping')  # Test the connection
             print(f"Connected to MongoDB database: {self.db_name}")
