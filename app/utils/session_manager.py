@@ -5,7 +5,7 @@ import threading
 import logging
 import hashlib
 import json
-from app.services.chat_service import OpenAIChatbot
+from app.services.ai_counsellor.chat_service import OpenAIChatbot
 
 # Dictionary to hold sessions: { chat_id: (chatbot_instance, last_used_timestamp) }
 sessions = {}

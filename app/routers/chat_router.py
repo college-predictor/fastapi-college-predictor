@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 # Import our chat service and session manager utilities
-from app.services.chat_service import OpenAIChatbot
+from app.services.ai_counsellor.chat_service import OpenAIChatbot
 from app.utils.session_manager import (
     check_session,
     get_session,
@@ -17,7 +17,7 @@ from app.utils.session_manager import (
 )
 
 # It’s common to retrieve sensitive keys from the environment.
-API_KEY = os.environ.get("OPENAI_API_KEY", "your-default-openai-api-key")
+API_KEY = os.environ.get("OPENAI_API_KEY", None)
 
 router = APIRouter()
 
