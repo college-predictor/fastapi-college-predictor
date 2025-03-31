@@ -1,84 +1,82 @@
-# app/routers/chat_router.py
-
-import os
-import logging
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-
-# Import our chat service and session manager utilities
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from typing import List, Dict
 from app.services.chat_service import OpenAIChatbot
-from app.utils.session_manager import (
-    check_session,
-    get_session,
-    create_session,
-    compute_hash,
-    SyncRequired,
-)
-
-# It’s common to retrieve sensitive keys from the environment.
-API_KEY = os.environ.get("OPENAI_API_KEY", "your-default-openai-api-key")
+import json
+import logging
+from fastapi import Depends
 
 router = APIRouter()
 
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, WebSocket] = {}
+        self.chatbots: Dict[str, OpenAIChatbot] = {}
 
-class ChatRequest(BaseModel):
-    chat_id: str
-    messages: list = []  # Full conversation (for sync)
-    prompt: str = None
-    chat_hash: str = None
-    sync_required: bool = False
+    async def connect(self, websocket: WebSocket, client_id: str):
+        await websocket.accept()
+        self.active_connections[client_id] = websocket
+        self.chatbots[client_id] = OpenAIChatbot(api_key="None")
 
+    def disconnect(self, client_id: str):
+        if client_id in self.active_connections:
+            del self.active_connections[client_id]
+        if client_id in self.chatbots:
+            del self.chatbots[client_id]
 
-@router.post("/chat/generate-text")
-async def generate_text(chat_req: ChatRequest):
-    logging.debug(f"Received generate-text request: {chat_req}")
+    async def send_message(self, message: str, client_id: str):
+        if client_id in self.active_connections:
+            await self.active_connections[client_id].send_text(message)
 
-    # Check if a session for the given chat_id already exists
-    if check_session(chat_req.chat_id):
-        print("Session exists")
-        chatbot = get_session(chat_req.chat_id)
+    def get_chatbot(self, client_id: str) -> OpenAIChatbot:
+        return self.chatbots.get(client_id)
 
-        if chat_req.sync_required:
-            print("Syncing full conversation")
-            # Replace the conversation with the client’s full conversation if requested
-            chatbot.conversation = chat_req.messages
+manager = ConnectionManager()
 
-        if not chat_req.chat_hash:
-            print("No hash provided. Sync required.")
-            return JSONResponse(
-                status_code=409,
-                content={
-                    "detail": "Session exists but no hash provided. Please sync full conversation.",
-                    "sync_required": True,
-                },
-            )
+@router.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    try:
+        await manager.connect(websocket, client_id)
+        await manager.send_message(json.dumps({
+            "type": "system",
+            "message": "Connected to the chatbot server"
+        }), client_id)
 
-        # Verify that the client’s conversation hash matches our session’s conversation
-        if chat_req.chat_hash == compute_hash(chatbot.conversation):
-            print("Hash matched. Generating response.")
-            response_text = chatbot.generate_text_response(chat_req.prompt)
-            return {"response": response_text}
-        else:
-            print("Hash mismatch. Sync required.")
-            print("Client hash:", chat_req.chat_hash)
-            print("Server hash:", compute_hash(chatbot.conversation))
-            print("Client conversation:", chat_req.messages)
-            print("Server conversation:", chatbot.conversation)
-            return JSONResponse(
-                status_code=409,
-                content={
-                    "detail": "Session exists but messages are not synced.",
-                    "sync_required": True,
-                },
-            )
-    else:
-        # No valid session exists, so create a new one.
-        chatbot = create_session(chat_id=chat_req.chat_id, api_key=API_KEY)
-        return JSONResponse(
-            status_code=409,
-            content={
-                "detail": "Session does not exist. Creating new session. Please send full conversation with sync_required=True.",
-                "sync_required": True,
-            },
-        )
+        while True:
+            data = await websocket.receive_text()
+            try:
+                message_data = json.loads(data)
+                user_message = message_data.get("message", "")
+                
+                chatbot = manager.get_chatbot(client_id)
+                if not chatbot:
+                    await manager.send_message(json.dumps({
+                        "type": "error",
+                        "message": "Chatbot not initialized"
+                    }), client_id)
+                    continue
+
+                # Generate response using the chatbot
+                response = chatbot.generate_text_response(user_message)
+                
+                await manager.send_message(json.dumps({
+                    "type": "assistant",
+                    "message": response
+                }), client_id)
+
+            except json.JSONDecodeError:
+                await manager.send_message(json.dumps({
+                    "type": "error",
+                    "message": "Invalid message format"
+                }), client_id)
+            except Exception as e:
+                logging.error(f"Error processing message: {str(e)}")
+                await manager.send_message(json.dumps({
+                    "type": "error",
+                    "message": "Error processing your message"
+                }), client_id)
+
+    except WebSocketDisconnect:
+        manager.disconnect(client_id)
+    except Exception as e:
+        logging.error(f"WebSocket error: {str(e)}")
+        manager.disconnect(client_id)
