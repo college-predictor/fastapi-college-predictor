@@ -23,6 +23,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         while True:
             # Receive message from client
             data = await websocket.receive_json()
+            # print(data)
             message_type = data.get("type", "text")
             content = data.get("content", "")
             
