@@ -6,18 +6,17 @@ import os
 
 router = APIRouter()
 
-# Store active connections
+# Store active connections and their chatbots
 connected_clients: Dict[str, WebSocket] = {}
-
-# Initialize chatbot with API key
-chatbot = OpenAIChatbot(api_key=os.getenv("OPENAI_API_KEY", None))
+chatbots: Dict[str, OpenAIChatbot] = {}
 
 @router.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     await websocket.accept()
     
-    # Register new client
+    # Register new client and create a new chatbot instance
     connected_clients[client_id] = websocket
+    chatbots[client_id] = OpenAIChatbot(api_key=os.getenv("OPENAI_API_KEY", None))
     
     try:
         while True:
@@ -26,6 +25,15 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             # print(data)
             message_type = data.get("type", "text")
             content = data.get("content", "")
+
+            if message_type == "sync":
+                # receive current conversation history from the client
+                for msg in content:
+                    if msg.get("isComplete", False):
+                        del msg["isComplete"]
+                chatbots[client_id].conversation = content
+                # print(content)
+                continue
             
             # Process message based on type
             if message_type not in ["text", "research"]:
@@ -36,7 +44,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 })
                 continue
             
-            async for text in chatbot.generate_streaming_response(content):
+            async for text in chatbots[client_id].generate_streaming_response(content):
                 # print(text)
                 # Use streaming response for both text and research
                 await websocket.send_json({
@@ -58,6 +66,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         # Remove client from active connections
         if client_id in connected_clients:
             del connected_clients[client_id]
+            del chatbots[client_id]
             
         # Notify remaining clients about the disconnection
         for cid, conn in connected_clients.items():
