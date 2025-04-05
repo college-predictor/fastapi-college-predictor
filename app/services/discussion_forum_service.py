@@ -1,6 +1,7 @@
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 from datetime import datetime
 import uuid
+import re
 
 class DiscussionForumService:
     """
@@ -10,6 +11,7 @@ class DiscussionForumService:
     def __init__(self):
         # In-memory storage for active users and message history
         self.messages = []
+        self.rejected_messages = []  # Store rejected messages
         self.active_users = {}
         self.user_preferences = {}  # Store user preferences like username
     
@@ -57,7 +59,36 @@ class DiscussionForumService:
         """
         return len(self.active_users)
     
-    async def add_message(self, user_id: str, content: str, message_type: str = "text") -> Dict[str, Any]:
+    async def validate_message(self, content: str) -> Tuple[bool, str]:
+        """
+        Validate a message before adding it to the chat history.
+        
+        Args:
+            content: Message content to validate
+            
+        Returns:
+            Tuple of (is_valid, reason)
+        """
+        # Simple validation rules - can be expanded
+        if len(content) < 1:
+            return False, "Message is empty"
+        
+        if len(content) > 1000:
+            return False, "Message is too long (max 1000 characters)"
+            
+        # Check for inappropriate content using regex
+        # This is a simple example - in production you might use more sophisticated methods
+        inappropriate_patterns = [
+            r'\b(hate|violent|offensive)\b',  # Example of basic inappropriate terms
+        ]
+        
+        for pattern in inappropriate_patterns:
+            if re.search(pattern, content, re.IGNORECASE):
+                return False, "Message contains inappropriate content"
+        
+        return True, ""
+    
+    async def add_message(self, user_id: str, content: str, message_type: str = "text", message_id: str = None) -> Dict[str, Any]:
         """
         Add a new message to the chat history.
         
@@ -65,16 +96,22 @@ class DiscussionForumService:
             user_id: Unique identifier for the user
             content: Message content
             message_type: Type of the message (default: "text")
+            message_id: Optional message ID from frontend (default: None)
             
         Returns:
-            The created message object
+            The created message object with validation status
         """
         user_info = self.active_users.get(user_id, {})
         username = user_info.get("username", f"User-{user_id[:8]}")
         color = user_info.get("color", "#000000")
         
+        # Use provided message ID or generate a new one
+        if message_id is None:
+            message_id = str(uuid.uuid4())
+        
+        # Create message object
         message = {
-            "id": str(uuid.uuid4()),
+            "id": message_id,
             "user_id": user_id,
             "username": username,
             "color": color,
@@ -83,8 +120,44 @@ class DiscussionForumService:
             "timestamp": datetime.utcnow().isoformat()
         }
         
-        self.messages.append(message)
+        # Validate message
+        is_valid, reason = await self.validate_message(content)
+        message["status"] = "validated" if is_valid else "error"
+        
+        if is_valid:
+            # Add valid message to history
+            self.messages.append(message)
+        else:
+            # Store rejected message with reason
+            message["rejection_reason"] = reason
+            self.rejected_messages.append(message)
+        
         return message
+    
+    async def get_rejected_message_history(self, last_timestamp: str = None, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Get rejected message history newer than specified timestamp.
+        
+        Args:
+            last_timestamp: ISO format timestamp to fetch messages after
+            limit: Maximum number of messages to return
+            
+        Returns:
+            List of rejected message objects newer than the timestamp
+        """
+        if not last_timestamp:
+            # Return most recent rejected messages if no timestamp provided
+            return self.rejected_messages[-limit:]
+            
+        # Filter rejected messages newer than the given timestamp
+        filtered = []
+        for msg in reversed(self.rejected_messages):
+            if msg["timestamp"] > last_timestamp:
+                filtered.append(msg)
+                if len(filtered) >= limit:
+                    break
+        
+        return filtered
     
     async def get_message_history(self, last_timestamp: str = None, limit: int = 200) -> List[Dict[str, Any]]:
         """

@@ -43,7 +43,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         while True:
             # Receive message from client
             data = await websocket.receive_json()
-            # print(data)
+            print(data)
             if data.get("type") == "get_users_count":
                 # Send current users count
                 await websocket.send_json({
@@ -64,26 +64,36 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 # Process and broadcast new message
                 content = data.get("content", "").strip()
                 message_type = data.get("type", "text")
+                message_id = data.get("messageId")
                 if content:
-                    # Add message to history
-                    message = await discussion_service.add_message(client_id, content, message_type)
+                    # Add message to history with validation
+                    message = await discussion_service.add_message(client_id, content, message_type, message_id)
                     
-                    # Broadcast message to all connected clients except sender
-                    for client_id, conn in list(connected_clients.items()):
-                        if client_id != message["user_id"]:  # Skip sender
-                            try:
-                                await conn.send_json({
-                                    "type": "message",
-                                    "id": message["id"],
-                                    "user_id": message["user_id"],
-                                    "username": message["username"],
-                                    "color": message["color"],
-                                    "type": message["type"],
-                                    "content": message["content"],
-                                    "timestamp": message["timestamp"]
-                                })
-                            except Exception:
-                                pass
+                    # Send validation status to the sender
+                    await websocket.send_json({
+                        "type": "validation",
+                        "messageId": message["id"],
+                        "status": message["status"]
+                    })
+                    
+                    # Only broadcast validated messages
+                    if message["status"] == "validated":
+                        # Broadcast message to all connected clients except sender
+                        for client_id, conn in list(connected_clients.items()):
+                            if client_id != message["user_id"]:  # Skip sender
+                                try:
+                                    await conn.send_json({
+                                        "type": "message",
+                                        "id": message["id"],
+                                        "user_id": message["user_id"],
+                                        "username": message["username"],
+                                        "color": message["color"],
+                                        "type": message["type"],
+                                        "content": message["content"],
+                                        "timestamp": message["timestamp"]
+                                    })
+                                except Exception:
+                                    pass
             
             elif data.get("type") == "get_history":
                 # Get message history newer than specified timestamp
@@ -96,6 +106,21 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 # Send history to the requesting client
                 await websocket.send_json({
                     "type": "history",
+                    "messages": messages,
+                    "has_more": len(messages) == limit
+                })
+            
+            elif data.get("type") == "get_rejected_history":
+                # Get rejected message history
+                last_timestamp = data.get("last_timestamp")
+                limit = data.get("limit", 20)
+                
+                # Retrieve rejected messages newer than the timestamp
+                messages = await discussion_service.get_rejected_message_history(last_timestamp, limit)
+                
+                # Send rejected history to the requesting client
+                await websocket.send_json({
+                    "type": "rejected_history",
                     "messages": messages,
                     "has_more": len(messages) == limit
                 })
