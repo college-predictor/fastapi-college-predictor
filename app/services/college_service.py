@@ -55,6 +55,7 @@ class CollegeService:
             required_state = college.get("state")
             required_quota = college.get("quota")
             college_type = college.get("collegeType")
+            course_type = college.get("courseType")
 
             # Adjust ranks with margin
             adjusted_opening_rank = int(opening_rank * (1 - margin))
@@ -64,6 +65,8 @@ class CollegeService:
                 if required_gender=="Gender-Neutral" or required_gender==gender:
                     if required_quota=="OS" or required_state==state:
                         if adjusted_opening_rank< mains_gen_rank <adjusted_closing_rank:
+                            if course_type == "B.Arch":
+                                continue
                             if college_type == "NIT":
                                 # print("NIT College: ", college)
                                 filtered_nit_colleges.append(college)

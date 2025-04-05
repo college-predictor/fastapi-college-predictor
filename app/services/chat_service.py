@@ -1,29 +1,79 @@
 # chatbot.py
+from typing import List, Union
 import logging
-import os
+from pydantic import BaseModel
 from openai import OpenAI
 import asyncio
 
+class Decisions(BaseModel):
+    search_online: bool
+    generate_jee_list: bool
+    write_notes: bool
+    update_memory: bool
+
+class SearchPrompts(BaseModel):
+    prompts: List[str]
+
+class GetCollegesList(BaseModel):
+    jee_form_fields: List[str]
+
 class OpenAIChatbot:
-    def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
+    def __init__(self, api_key: str, model: str = "gpt-4o"):
         self.client = OpenAI(api_key=api_key)
         self.model = model
         # Initialize conversation with a system prompt.
         self.conversation = []
         self.researches = []
         logging.debug("Initialized OpenAIChatbot with default system prompt.")
+        self.memory = ""
+        decision_instructions = [
+            {
+                "name": "search_online",
+                "description": "Only search online if students wants latest information and explicitely asks for it then return tru else return false",
+                "display_message": "Searching online for the answer..."
+            },
+            {
+                "name": "generate_jee_list",
+                "description": "To search colleges following fields are required: rank either jee mains or jee advanced or both of general category or reserved category rank with category(if applicable) or both. year of admission. set margin of opening closing rank and \
+opening rank between 0 to 0.9 (0 to 90 percent) depending on the student query, default is 0.1 which is 10 percent but increase or decrease depending on student request",
+            },
+            {
+                "name": "write_notes",
+                "description": "Only write notes if student wants to detailed explanation for future reference such as: Detailed overview of the college, \
+course offered, admission criteria, fee structure, facilities available, and any other relevant information.",
+            },
+            {
+                "name": "update_memory",
+                "description": "Only update memory if student provides new information or updates to existing information. You should consider to mention and update the following information: \
+Name, Gender, Address, Phone number, Email, School, Class, Board, Subjects, Marks, competetive exams taken or appearing for this year and their ranks (in different categories if applicable for category wise), you should enter detail with precise understanding, do not mix ranks with different exams as all exams are different such as JEE main, JEE advanced, NEET, \
+other competitive exams and their ranks.",
+            }
+        ]
 
     def add_message(self, role: str, content: str):
         self.conversation.append({"role": role, "content": content})
         logging.debug(f"Added message: role={role}, content={content}")
 
-    def generate_text_response(self, prompt: str) -> str:
-        self.add_message("user", prompt)
+    def update_memory(self):
+        system_prompt = """Analyze the conversation and identify if there is a change of interest, corrention,\
+ or information of interest for counselling consideration of student missing in the profile.
+If there is then update current profile with the new information.
+
+Information to consider: Name, Gender, Address, Phone number, Email, School, Class, Board, \
+Subjects, Marks, competetive exams taken or appearing for this year and their ranks (in different categories if applicable for category wise)
+
+Current profile: ```{self.memory}```"""
+        prompt = self.conversation
+        response = self.generate_openai_response(prompt)
+        self.memory = response
+        return response
+
+    def generate_openai_response(self, conversation: List[dict]) -> str:
         try:
-            logging.debug(f"Generating text response for prompt: {prompt}")
+            logging.debug(f"Generating text response")
             response = self.client.chat.completions.create(
                 model=self.model,
-                messages=self.conversation,
+                messages=conversation,
                 max_tokens=300,
             )
             assistant_response = response.choices[0].message.content
@@ -66,7 +116,7 @@ class OpenAIChatbot:
             logging.debug(f"Generating streaming response for prompt: {prompt}")
             stream = self.client.responses.create(
                         model=self.model,
-                        input=self.conversation,
+                        input= [{"role": "system", "content": "Keep all response less than 100 words"}]+ self.conversation,
                         stream=True,
                     )
             
