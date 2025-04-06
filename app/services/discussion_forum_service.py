@@ -217,27 +217,15 @@ class DiscussionForumService:
         
         return question_id
     
-    async def get_questions(self, last_timestamp: str = None, limit: int = 50) -> List[Dict[str, Any]]:
+    async def get_question(self, question_id: str) -> Dict[str, Any]:
         """
-        Get questions newer than specified timestamp.
+        Get a question by its ID.
         
         Args:
-            last_timestamp: ISO format timestamp to fetch questions after
-            limit: Maximum number of questions to return
+            question_id: The ID of the question to retrieve
             
         Returns:
-            List of question objects newer than the timestamp
+            The question object if found, None otherwise
         """
-        if not last_timestamp:
-            # Return most recent questions if no timestamp provided
-            return self.questions[-limit:]
-            
-        # Filter questions newer than the given timestamp
-        filtered = []
-        for q in reversed(self.questions):
-            if q["timestamp"] > last_timestamp:
-                filtered.append(q)
-                if len(filtered) >= limit:
-                    break
-        
-        return filtered
+        return self.questions.get(question_id)
+    

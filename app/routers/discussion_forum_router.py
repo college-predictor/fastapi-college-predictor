@@ -1,4 +1,4 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from typing import Dict, List, Any
 from app.services.discussion_forum_service import DiscussionForumService
 from datetime import datetime
@@ -95,8 +95,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                         "type": message["type"],
                                         "content": message["content"],
                                         "timestamp": message["timestamp"],
-                                        "hasQuestion": message["has_question"],
-                                        "questionId": message["question_id"]
+                                        "has_question": message["has_question"],
+                                        "question_id": message["question_id"]
                                     })
                                     # print(f"Successfully sent to {client_id}")  # Debug log
                                 except Exception as e:
@@ -162,3 +162,21 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 })
             except Exception:
                 pass
+
+@router.get("/question/{question_id}")
+async def get_question(question_id: str):
+    """
+    Get a question by its ID.
+    
+    Args:
+        question_id: The ID of the question to retrieve
+        
+    Returns:
+        The question object if found
+    """
+    question = await discussion_service.get_question(question_id)
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    return question.get("data")
+
+
