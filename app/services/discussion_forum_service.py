@@ -2,6 +2,7 @@ from typing import Dict, List, Any, Tuple
 from datetime import datetime
 import uuid
 import re
+from better_profanity import profanity  # Import the profanity filter
 
 class DiscussionForumService:
     """
@@ -11,10 +12,14 @@ class DiscussionForumService:
     def __init__(self):
         # In-memory storage for active users and message history
         self.messages = []
+        self.questions = {}
         self.rejected_messages = []  # Store rejected messages
         self.active_users = {}
         self.user_preferences = {}  # Store user preferences like username
-    
+        
+        # Initialize profanity filter
+        profanity.load_censor_words()  # Load the default word list
+        
     async def register_active_user(self, user_id: str, username: str, color: str = None) -> None:
         """
         Register a user as active in the forum.
@@ -69,15 +74,17 @@ class DiscussionForumService:
         Returns:
             Tuple of (is_valid, reason)
         """
-        # Simple validation rules - can be expanded
-        if len(content) < 1:
-            return False, "Message is empty"
+        if content=="":
+            return True, ""
         
         if len(content) > 1000:
             return False, "Message is too long (max 1000 characters)"
             
-        # Check for inappropriate content using regex
-        # This is a simple example - in production you might use more sophisticated methods
+        # Use better-profanity to check for inappropriate content
+        if profanity.contains_profanity(content):
+            return False, "Message contains inappropriate content"
+        
+        # Additional regex checks for other patterns if needed
         inappropriate_patterns = [
             r'\b(hate|violent|offensive)\b',  # Example of basic inappropriate terms
         ]
@@ -88,7 +95,7 @@ class DiscussionForumService:
         
         return True, ""
     
-    async def add_message(self, user_id: str, content: str, message_type: str = "text", message_id: str = None) -> Dict[str, Any]:
+    async def add_message(self, user_id: str, content: str, message_type: str = "text", message_id: str = None, has_question: bool = False, question_id: str = None) -> Dict[str, Any]:
         """
         Add a new message to the chat history.
         
@@ -117,7 +124,9 @@ class DiscussionForumService:
             "color": color,
             "type": message_type,
             "content": content,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
+            "has_question": has_question,
+            "question_id": question_id
         }
         
         # Validate message
@@ -179,6 +188,55 @@ class DiscussionForumService:
         for msg in reversed(self.messages):
             if msg["timestamp"] > last_timestamp:
                 filtered.append(msg)
+                if len(filtered) >= limit:
+                    break
+        
+        return filtered
+    
+    async def add_question(self, question_id: str, question_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Add a new question to the questions list.
+        
+        Args:
+            user_id: Unique identifier for the user who posted the question
+            question_data: Dictionary containing question details
+            
+        Returns:
+            The created question object with additional metadata
+        """
+        
+        # Create question object with only the essential data
+        question = {
+            "id": question_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": question_data
+        }
+        
+        # Add question to questions list
+        self.questions[question_id] = question
+        
+        return question_id
+    
+    async def get_questions(self, last_timestamp: str = None, limit: int = 50) -> List[Dict[str, Any]]:
+        """
+        Get questions newer than specified timestamp.
+        
+        Args:
+            last_timestamp: ISO format timestamp to fetch questions after
+            limit: Maximum number of questions to return
+            
+        Returns:
+            List of question objects newer than the timestamp
+        """
+        if not last_timestamp:
+            # Return most recent questions if no timestamp provided
+            return self.questions[-limit:]
+            
+        # Filter questions newer than the given timestamp
+        filtered = []
+        for q in reversed(self.questions):
+            if q["timestamp"] > last_timestamp:
+                filtered.append(q)
                 if len(filtered) >= limit:
                     break
         

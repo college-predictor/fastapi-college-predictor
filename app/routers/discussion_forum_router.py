@@ -65,9 +65,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 content = data.get("content", "").strip()
                 message_type = data.get("type", "text")
                 message_id = data.get("messageId")
-                if content:
+                question_id = data.get("questionId")
+                has_question = data.get("hasQuestion")
+                if content != None:
                     # Add message to history with validation
-                    message = await discussion_service.add_message(client_id, content, message_type, message_id)
+                    message = await discussion_service.add_message(client_id, content, message_type, message_id, has_question, question_id)
                     
                     # Send validation status to the sender
                     await websocket.send_json({
@@ -79,9 +81,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     # Only broadcast validated messages
                     if message["status"] == "validated":
                         # Broadcast message to all connected clients except sender
-                        for client_id, conn in list(connected_clients.items()):
-                            if client_id != message["user_id"]:  # Skip sender
+                        print(f"Broadcasting message to {len(connected_clients)} clients")  # Debug log
+                        for broadcasting_client_id, conn in list(connected_clients.items()):
+                            if broadcasting_client_id != message["user_id"]:  # Skip sender
                                 try:
+                                    # print(f"Sending to client {client_id}")  # Debug log
                                     await conn.send_json({
                                         "type": "message",
                                         "id": message["id"],
@@ -90,10 +94,16 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                         "color": message["color"],
                                         "type": message["type"],
                                         "content": message["content"],
-                                        "timestamp": message["timestamp"]
+                                        "timestamp": message["timestamp"],
+                                        "hasQuestion": message["has_question"],
+                                        "questionId": message["question_id"]
                                     })
-                                except Exception:
-                                    pass
+                                    # print(f"Successfully sent to {client_id}")  # Debug log
+                                except Exception as e:
+                                    # print(f"Error sending to client {client_id}: {str(e)}")  # Debug log
+                                    # Remove disconnected client
+                                    if broadcasting_client_id in connected_clients:
+                                        del connected_clients[broadcasting_client_id]
             
             elif data.get("type") == "get_history":
                 # Get message history newer than specified timestamp
@@ -124,7 +134,15 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     "messages": messages,
                     "has_more": len(messages) == limit
                 })
-    
+            elif data.get("type") == "question":
+                # Process and broadcast new question
+                question_id = data.get("questionId", {})
+                question_data = data.get("data", {})
+                
+                if question_data:
+                    # Add question to history
+                    question = await discussion_service.add_question(question_id, question_data)
+            
     except WebSocketDisconnect:
         # Remove client from active connections
         if client_id in connected_clients:

@@ -12,7 +12,7 @@ class MongoDB:
         load_dotenv()
         username = os.getenv('MONGODB_NAME')
         password = os.getenv('MONGODB_PASS')
-        self.db_name = os.getenv('DB_NAME_DEV')
+        self.db_name = os.getenv('DB_NAME_PROD')
         mongo_uri = os.getenv('MONGO_URI')
         self.uri = mongo_uri.format(username=username, password=password, db_name=self.db_name)
         self.client = None
