@@ -2,7 +2,9 @@ from typing import Dict, List, Any, Tuple
 from datetime import datetime
 import uuid
 import re
+from bson import ObjectId
 from better_profanity import profanity  # Import the profanity filter
+from app.config.database import MongoDB
 
 class DiscussionForumService:
     """
@@ -10,12 +12,16 @@ class DiscussionForumService:
     Handles temporary message storage and active user tracking.
     """
     def __init__(self):
-        # In-memory storage for active users and message history
-        self.messages = []
-        self.questions = {}
-        self.rejected_messages = []  # Store rejected messages
+        # In-memory storage for active users
         self.active_users = {}
         self.user_preferences = {}  # Store user preferences like username
+        
+        # Initialize MongoDB connection
+        self.db = MongoDB()
+        self.db.connect()
+        self.messages_collection = self.db.get_collection("messages")
+        self.questions_collection = self.db.get_collection("questions")
+        self.rejected_messages_collection = self.db.get_collection("rejected_messages")
         
         # Initialize profanity filter
         profanity.load_censor_words()  # Load the default word list
@@ -134,12 +140,14 @@ class DiscussionForumService:
         message["status"] = "validated" if is_valid else "error"
         
         if is_valid:
-            # Add valid message to history
-            self.messages.append(message)
+            # Add valid message to MongoDB
+            result = self.messages_collection.insert_one(message)
+            message["_id"] = str(result.inserted_id)
         else:
             # Store rejected message with reason
             message["rejection_reason"] = reason
-            self.rejected_messages.append(message)
+            result = self.rejected_messages_collection.insert_one(message)
+            message["_id"] = str(result.inserted_id)
         
         return message
     
@@ -168,7 +176,7 @@ class DiscussionForumService:
         
         return filtered
     
-    async def get_message_history(self, last_timestamp: str = None, limit: int = 200) -> List[Dict[str, Any]]:
+    async def get_message_history(self, last_timestamp: str = None, limit: int = 20) -> List[Dict[str, Any]]:
         """
         Get message history newer than specified timestamp.
         
@@ -179,19 +187,17 @@ class DiscussionForumService:
         Returns:
             List of message objects newer than the timestamp
         """
-        if not last_timestamp:
-            # Return most recent messages if no timestamp provided
-            return self.messages[-limit:]
+        query = {}
+        if last_timestamp:
+            query["timestamp"] = {"$gt": last_timestamp}
             
-        # Filter messages newer than the given timestamp
-        filtered = []
-        for msg in reversed(self.messages):
-            if msg["timestamp"] > last_timestamp:
-                filtered.append(msg)
-                if len(filtered) >= limit:
-                    break
-        
-        return filtered
+        cursor = self.messages_collection.find(query).sort("timestamp", 1).limit(limit)
+        messages = []
+        for msg in cursor:
+            msg["_id"] = str(msg["_id"])  # Convert ObjectId to string
+            messages.append(msg)
+            
+        return messages
     
     async def add_question(self, question_id: str, question_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -212,10 +218,9 @@ class DiscussionForumService:
             "data": question_data
         }
         
-        # Add question to questions list
-        self.questions[question_id] = question
-        
-        return question_id
+        # Add question to MongoDB
+        result = self.questions_collection.insert_one(question)
+        return str(result.inserted_id)
     
     async def get_question(self, question_id: str) -> Dict[str, Any]:
         """
@@ -227,5 +232,9 @@ class DiscussionForumService:
         Returns:
             The question object if found, None otherwise
         """
-        return self.questions.get(question_id)
+        question = self.questions_collection.find_one({"id": question_id})
+        if question:
+            question["_id"] = str(question["_id"])  # Convert ObjectId to string
+            return question
+        return None
     
