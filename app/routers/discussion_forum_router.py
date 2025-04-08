@@ -95,7 +95,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                             await websocket.send_json({
                                 "type": "validation",
                                 "messageId": message["id"],
-                                "status": message["status"]
+                                "status": message["status"],
+                                "reason": message["reason"]
                             })
                             
                             # Only broadcast validated messages

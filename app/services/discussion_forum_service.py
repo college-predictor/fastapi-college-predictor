@@ -1,10 +1,11 @@
 from typing import Dict, List, Any, Tuple
 from datetime import datetime, timezone
 import uuid
-import re
-from bson import ObjectId
+import re, os
 from better_profanity import profanity  # Import the profanity filter
 from app.config.database import MongoDB
+from app.utils.utils import OpenAIDecisions
+import os
 
 class DiscussionForumService:
     """
@@ -24,6 +25,9 @@ class DiscussionForumService:
         
         # Initialize profanity filter
         profanity.load_censor_words()  # Load the default word list
+        
+        # Initialize OpenAI validator
+        self.openai_validator = OpenAIDecisions(api_key=os.getenv("OPENAI_API_KEY"))
         
     async def register_active_user(self, user_id: str, username: str, color: str = None) -> None:
         """
@@ -108,20 +112,15 @@ class DiscussionForumService:
         
         if len(content) > 1000:
             return False, "Message is too long (max 1000 characters)"
+              
+        # Use OpenAI validator for additional checks
+        try:
+            is_valid, reason = await self.openai_validator.message_validator(content)
+            if not is_valid:
+                return False, reason
+        except Exception as e:
+            return False, f"OpenAI connection failed: {str(e)}"
             
-        # Use better-profanity to check for inappropriate content
-        if profanity.contains_profanity(content):
-            return False, "Message contains inappropriate content"
-        
-        # Additional regex checks for other patterns if needed
-        inappropriate_patterns = [
-            r'\b(hate|violent|offensive)\b',  # Example of basic inappropriate terms
-        ]
-        
-        for pattern in inappropriate_patterns:
-            if re.search(pattern, content, re.IGNORECASE):
-                return False, "Message contains inappropriate content"
-        
         return True, ""
     
     async def add_message(
@@ -169,6 +168,7 @@ class DiscussionForumService:
         # Validate message
         is_valid, reason = await self.validate_message(content)
         message["status"] = "validated" if is_valid else "error"
+        message["reason"] = reason
 
         if is_valid:
             result = self.messages_collection.insert_one(message)
