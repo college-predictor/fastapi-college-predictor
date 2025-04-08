@@ -43,7 +43,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         while True:
             # Receive message from client
             data = await websocket.receive_json()
-            print(data)
+            # print(data)
             if data.get("type") == "get_users_count":
                 # Send current users count
                 await websocket.send_json({

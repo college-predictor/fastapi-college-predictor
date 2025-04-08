@@ -1,5 +1,5 @@
 from typing import Dict, List, Any, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 import re
 from bson import ObjectId
@@ -45,7 +45,7 @@ class DiscussionForumService:
         self.active_users[user_id] = {
             "username": username,
             "color": color or self.user_preferences.get(user_id, {}).get("color", "#000000"),
-            "last_active": datetime.utcnow()
+            "last_active": datetime.now(timezone.utc)
         }
     
     async def get_user_preferences(self, user_id: str) -> dict:
@@ -101,27 +101,35 @@ class DiscussionForumService:
         
         return True, ""
     
-    async def add_message(self, user_id: str, content: str, message_type: str = "text", message_id: str = None, has_question: bool = False, question_id: str = None) -> Dict[str, Any]:
+    async def add_message(
+        self,
+        user_id: str,
+        content: str,
+        message_type: str = "text",
+        message_id: str = None,
+        has_question: bool = False,
+        question_id: str = None
+    ) -> Dict[str, Any]:
         """
         Add a new message to the chat history.
-        
+
         Args:
             user_id: Unique identifier for the user
             content: Message content
             message_type: Type of the message (default: "text")
             message_id: Optional message ID from frontend (default: None)
-            
+
         Returns:
             The created message object with validation status
         """
         user_info = self.active_users.get(user_id, {})
         username = user_info.get("username", f"User-{user_id[:8]}")
         color = user_info.get("color", "#000000")
-        
+
         # Use provided message ID or generate a new one
         if message_id is None:
             message_id = str(uuid.uuid4())
-        
+
         # Create message object
         message = {
             "id": message_id,
@@ -130,95 +138,79 @@ class DiscussionForumService:
             "color": color,
             "type": message_type,
             "content": content,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc),  # Timezone-aware UTC timestamp
             "has_question": has_question,
             "question_id": question_id
         }
-        
+
         # Validate message
         is_valid, reason = await self.validate_message(content)
         message["status"] = "validated" if is_valid else "error"
-        
+
         if is_valid:
-            # Add valid message to MongoDB
             result = self.messages_collection.insert_one(message)
-            message["_id"] = str(result.inserted_id)
         else:
-            # Store rejected message with reason
             message["rejection_reason"] = reason
             result = self.rejected_messages_collection.insert_one(message)
-            message["_id"] = str(result.inserted_id)
-        
+
+        message["_id"] = str(result.inserted_id)
+        # Convert datetime fields to ISO format strings
+        if "timestamp" in message:
+            message["timestamp"] = message["timestamp"].isoformat()
         return message
-    
-    async def get_rejected_message_history(self, last_timestamp: str = None, limit: int = 100) -> List[Dict[str, Any]]:
-        """
-        Get rejected message history newer than specified timestamp.
-        
-        Args:
-            last_timestamp: ISO format timestamp to fetch messages after
-            limit: Maximum number of messages to return
-            
-        Returns:
-            List of rejected message objects newer than the timestamp
-        """
-        if not last_timestamp:
-            # Return most recent rejected messages if no timestamp provided
-            return self.rejected_messages[-limit:]
-            
-        # Filter rejected messages newer than the given timestamp
-        filtered = []
-        for msg in reversed(self.rejected_messages):
-            if msg["timestamp"] > last_timestamp:
-                filtered.append(msg)
-                if len(filtered) >= limit:
-                    break
-        
-        return filtered
     
     async def get_message_history(self, last_timestamp: str = None, limit: int = 20) -> List[Dict[str, Any]]:
         """
         Get message history older than specified timestamp.
-        
+
         Args:
-            last_timestamp: ISO format timestamp to fetch messages after
+            last_timestamp: ISO format timestamp to fetch messages before
             limit: Maximum number of messages to return
-            
+
         Returns:
-            List of message objects o than the timestamp
+            List of message objects older than the timestamp, sorted newest first
         """
         query = {}
         if last_timestamp:
-            query["timestamp"] = {"$lt": last_timestamp}
-            
+            try:
+                # Convert string to datetime object
+                timestamp_str = last_timestamp.replace('Z', '+00:00')
+                parsed_timestamp = datetime.fromisoformat(timestamp_str)
+                query["timestamp"] = {"$lt": parsed_timestamp}
+            except ValueError:
+                print(last_timestamp)
+                raise ValueError("Invalid ISO format timestamp")
+
         cursor = self.messages_collection.find(query).sort("timestamp", 1).limit(limit)
         messages = []
         for msg in cursor:
             msg["_id"] = str(msg["_id"])  # Convert ObjectId to string
+            # Convert datetime fields to ISO format strings
+            if "timestamp" in msg:
+                msg["timestamp"] = msg["timestamp"].isoformat()
             messages.append(msg)
-            
+
         return messages
-    
-    async def add_question(self, question_id: str, question_data: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def add_question(self, question_id: str, question_data: Dict[str, Any]) -> str:
         """
         Add a new question to the questions list.
-        
+
         Args:
-            user_id: Unique identifier for the user who posted the question
+            question_id: Unique identifier for the question
             question_data: Dictionary containing question details
-            
+
         Returns:
-            The created question object with additional metadata
+            The inserted question ID as a string
         """
-        
-        # Create question object with only the essential data
+
+        # Create question object with a proper datetime object
         question = {
             "id": question_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc),  # Proper datetime object for MongoDB
             "data": question_data
         }
-        
-        # Add question to MongoDB
+
         result = self.questions_collection.insert_one(question)
         return str(result.inserted_id)
     
