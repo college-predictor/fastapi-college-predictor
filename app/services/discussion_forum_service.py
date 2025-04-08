@@ -12,16 +12,15 @@ class DiscussionForumService:
     Handles temporary message storage and active user tracking.
     """
     def __init__(self):
-        # In-memory storage for active users
-        self.active_users = {}
-        self.user_preferences = {}  # Store user preferences like username
-        
         # Initialize MongoDB connection
         self.db = MongoDB()
         self.db.connect()
         self.messages_collection = self.db.get_collection("messages")
         self.questions_collection = self.db.get_collection("questions")
         self.rejected_messages_collection = self.db.get_collection("rejected_messages")
+        # Add collections for active users and user preferences
+        self.active_users_collection = self.db.get_collection("active_users")
+        self.user_preferences_collection = self.db.get_collection("user_preferences")
         
         # Initialize profanity filter
         profanity.load_censor_words()  # Load the default word list
@@ -37,19 +36,44 @@ class DiscussionForumService:
         """
         # Store the username and color in preferences if it's not a default one
         if not username.startswith("User-"):
-            self.user_preferences[user_id] = {
+            user_pref = {
+                "user_id": user_id,
                 "username": username,
                 "color": color or "#000000"  # Default to black if no color is provided
             }
+            # Update or insert user preferences
+            self.user_preferences_collection.update_one(
+                {"user_id": user_id},
+                {"$set": user_pref},
+                upsert=True
+            )
+        
+        # Get user color from preferences if not provided
+        if not color:
+            user_pref = self.user_preferences_collection.find_one({"user_id": user_id}) or {}
+            color = user_pref.get("color", "#000000")
             
-        self.active_users[user_id] = {
+        # Update or insert active user entry
+        active_user = {
+            "user_id": user_id,
             "username": username,
-            "color": color or self.user_preferences.get(user_id, {}).get("color", "#000000"),
+            "color": color,
             "last_active": datetime.now(timezone.utc)
         }
+        self.active_users_collection.update_one(
+            {"user_id": user_id},
+            {"$set": active_user},
+            upsert=True
+        )
     
     async def get_user_preferences(self, user_id: str) -> dict:
-        return self.user_preferences.get(user_id, {})
+        user_pref = self.user_preferences_collection.find_one({"user_id": user_id})
+        if user_pref:
+            # Remove MongoDB _id field
+            if "_id" in user_pref:
+                del user_pref["_id"]
+            return user_pref
+        return {}
     
     async def remove_active_user(self, user_id: str) -> None:
         """
@@ -58,8 +82,7 @@ class DiscussionForumService:
         Args:
             user_id: Unique identifier for the user
         """
-        if user_id in self.active_users:
-            del self.active_users[user_id]
+        self.active_users_collection.delete_one({"user_id": user_id})
     
     async def get_active_users_count(self) -> int:
         """
@@ -68,7 +91,7 @@ class DiscussionForumService:
         Returns:
             Number of active users
         """
-        return len(self.active_users)
+        return self.active_users_collection.count_documents({})
     
     async def validate_message(self, content: str) -> Tuple[bool, str]:
         """
@@ -122,7 +145,7 @@ class DiscussionForumService:
         Returns:
             The created message object with validation status
         """
-        user_info = self.active_users.get(user_id, {})
+        user_info = self.active_users_collection.find_one({"user_id": user_id}) or {}
         username = user_info.get("username", f"User-{user_id[:8]}")
         color = user_info.get("color", "#000000")
 
@@ -181,7 +204,7 @@ class DiscussionForumService:
                 print(last_timestamp)
                 raise ValueError("Invalid ISO format timestamp")
 
-        cursor = self.messages_collection.find(query).sort("timestamp", 1).limit(limit)
+        cursor = self.messages_collection.find(query).sort("timestamp", -1).limit(limit)
         messages = []
         for msg in cursor:
             msg["_id"] = str(msg["_id"])  # Convert ObjectId to string
@@ -190,7 +213,7 @@ class DiscussionForumService:
                 msg["timestamp"] = msg["timestamp"].isoformat()
             messages.append(msg)
 
-        return messages
+        return messages[::-1]
 
     async def add_question(self, question_id: str, question_data: Dict[str, Any]) -> str:
         """
