@@ -178,18 +178,18 @@ class DiscussionForumService:
     
     async def get_message_history(self, last_timestamp: str = None, limit: int = 20) -> List[Dict[str, Any]]:
         """
-        Get message history newer than specified timestamp.
+        Get message history older than specified timestamp.
         
         Args:
             last_timestamp: ISO format timestamp to fetch messages after
             limit: Maximum number of messages to return
             
         Returns:
-            List of message objects newer than the timestamp
+            List of message objects o than the timestamp
         """
         query = {}
         if last_timestamp:
-            query["timestamp"] = {"$gt": last_timestamp}
+            query["timestamp"] = {"$lt": last_timestamp}
             
         cursor = self.messages_collection.find(query).sort("timestamp", 1).limit(limit)
         messages = []
