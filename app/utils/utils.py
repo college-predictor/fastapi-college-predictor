@@ -28,7 +28,7 @@ class OpenAIDecisions:
             completion = self.client.beta.chat.completions.parse(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "Analyze the given message ensure given message does not contain adultry, offensive, abusing, threating kind of message and No personal information is shared in the message, only educational purpose related content is shared/discussed, if message is not related to educational purpose return false, if message is related to educational purpose return true. And return the reason validation failure in less than 6 words."},
+                    {"role": "system", "content": "Analyze the given message ensure given message does not contain adultry, offensive, abusing, threating kind of message and No personal information is shared in the message also return the reason validation failure in less than 6 words."},
                     {"role": "user", "content": f"validate the message: {message}"},
                 ],
                 max_tokens=50,
