@@ -13,7 +13,7 @@ app = FastAPI(
 # Configure CORS if your frontend is hosted elsewhere
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://collegepredictor.co.in"],
+    allow_origins=["http://localhost:5173", "https://collegepredictor.in"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
