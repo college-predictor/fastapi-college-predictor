@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import colleges_router, chat_router, discussion_forum_router
+from app.routers import colleges_router, chat_router, discussion_forum_router, features_router
 from app.utils.security import validate_api_key
 
 # Create FastAPI app instance
@@ -24,6 +24,7 @@ app.include_router(colleges_router.router, prefix="/api", tags=["Colleges"])
 # app.include_router(news_router.router, prefix="/api", tags=["News"])
 app.include_router(chat_router.router, prefix="/api", tags=["Chat"])
 app.include_router(discussion_forum_router.router, prefix="/api", tags=["Discussion Forum"])
+app.include_router(features_router.router, prefix="/api", tags=["Features"])
 
 # Health check endpoint
 @app.get("/")
