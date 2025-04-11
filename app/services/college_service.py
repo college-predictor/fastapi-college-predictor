@@ -12,8 +12,6 @@ class CollegeService:
         # print(colleges)
         filtered_colleges = []
         for college in colleges:
-            if "B.Arch" in course_type:
-                continue
             opening_rank = college.get("openingRank")
             closing_rank = college.get("closingRank")
             required_gender = college.get("gender")
@@ -21,6 +19,9 @@ class CollegeService:
             required_state = college.get("state")
             required_quota = college.get("quota")
             course_type = college.get("courseType")
+
+            if "B.Arch" in course_type:
+                continue
 
             # Adjust ranks with margin
             adjusted_opening_rank = int(opening_rank * (1 - margin))
@@ -50,8 +51,6 @@ class CollegeService:
         filtered_gfti_colleges = []
         # print(mains_cat_rank)
         for college in colleges:
-            if "B.Arch" in course_type:
-                continue
             # print("College type: ", college["collegeType"])
             opening_rank = college.get("openingRank")
             closing_rank = college.get("closingRank")
@@ -61,6 +60,9 @@ class CollegeService:
             required_quota = college.get("quota")
             college_type = college.get("collegeType")
             course_type = college.get("courseType")
+
+            if "B.Arch" in course_type:
+                continue
 
             # Adjust ranks with margin
             adjusted_opening_rank = int(opening_rank * (1 - margin))
