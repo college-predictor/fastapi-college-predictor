@@ -206,11 +206,31 @@ def calculate_marks(base_url):
                     elif chosen_option == "4":
                         selected_option_id = ques["option_4_id"]
 
-                    if selected_option_id == answer_id:
-                        score_card["total_marks"] += 4
-                    else:
-                        score_card["wrong_answers"] += 1
-                        score_card["total_marks"] -= 1
+                    # Determine which subject this question belongs to based on question number
+                    if 1 <= info["question_number"] <= 25:  # Mathematics
+                        if selected_option_id == answer_id:
+                            score_card["maths_marks"] += 4
+                            score_card["total_marks"] += 4
+                        else:
+                            score_card["wrong_answers"] += 1
+                            score_card["maths_marks"] -= 1
+                            score_card["total_marks"] -= 1
+                    elif 26 <= info["question_number"] <= 50:  # Physics
+                        if selected_option_id == answer_id:
+                            score_card["physics_marks"] += 4
+                            score_card["total_marks"] += 4
+                        else:
+                            score_card["wrong_answers"] += 1
+                            score_card["physics_marks"] -= 1
+                            score_card["total_marks"] -= 1
+                    elif 51 <= info["question_number"] <= 75:  # Chemistry
+                        if selected_option_id == answer_id:
+                            score_card["chemistry_marks"] += 4
+                            score_card["total_marks"] += 4
+                        else:
+                            score_card["wrong_answers"] += 1
+                            score_card["chemistry_marks"] -= 1
+                            score_card["total_marks"] -= 1
             else:
                 info["given_answer"] = ques["given_answer"]
                 if ques['status'] == "Not Answered":
@@ -223,11 +243,31 @@ def calculate_marks(base_url):
                     score_card["answered_questions"] += 1
 
                     given_answer = ques["given_answer"]
-                    if given_answer == answer_id:
-                        score_card["total_marks"] += 4
-                    else:
-                        score_card["wrong_answers"] += 1
-                        score_card["total_marks"] -= 1
+                    # Determine which subject this question belongs to based on question number
+                    if 1 <= info["question_number"] <= 25:  # Mathematics
+                        if given_answer == answer_id:
+                            score_card["maths_marks"] += 4
+                            score_card["total_marks"] += 4
+                        else:
+                            score_card["wrong_answers"] += 1
+                            score_card["maths_marks"] -= 1
+                            score_card["total_marks"] -= 1
+                    elif 26 <= info["question_number"] <= 50:  # Physics
+                        if given_answer == answer_id:
+                            score_card["physics_marks"] += 4
+                            score_card["total_marks"] += 4
+                        else:
+                            score_card["wrong_answers"] += 1
+                            score_card["physics_marks"] -= 1
+                            score_card["total_marks"] -= 1
+                    elif 51 <= info["question_number"] <= 75:  # Chemistry
+                        if given_answer == answer_id:
+                            score_card["chemistry_marks"] += 4
+                            score_card["total_marks"] += 4
+                        else:
+                            score_card["wrong_answers"] += 1
+                            score_card["chemistry_marks"] -= 1
+                            score_card["total_marks"] -= 1
 
             data.append(info)
             i += 1
