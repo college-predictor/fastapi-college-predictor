@@ -183,11 +183,8 @@ def calculate_marks(base_url):
                     info["correct_option"] = "3"
                 elif ques["option_4_id"] == answer_id:
                     info["correct_option"] = "4"
-                else:
-                    print("Error: Correct option not found")
-                    print(ques, answer_id)
 
-                if ques['status'] == "Not Answered":
+                if "Not Answered" in ques['status'] or "Not Attempted" in ques['status']:
                     score_card["unanswered_questions"] += 1
                     info["status"] = "Not Answered"
                 else:
@@ -233,7 +230,7 @@ def calculate_marks(base_url):
                             score_card["total_marks"] -= 1
             else:
                 info["given_answer"] = ques["given_answer"]
-                if ques['status'] == "Not Answered":
+                if "Not Answered" in ques['status'] or "Not Attempted" in ques['status']:
                     score_card["unanswered_questions"] += 1
                     info["status"] = "Not Answered"
                 else:
