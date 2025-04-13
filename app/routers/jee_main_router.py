@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Body, Request, HTTPException
 import json
 import asyncio
-from app.services.jee_main_services import save_url_in_mongo
+from app.services.jee_main_services import save_url_in_mongo, calculate_marks
 
 router = APIRouter(prefix="/jee-main")
 
@@ -21,9 +21,8 @@ async def process_url(url: str):
     try:
         # Process the URL (currently just saving to MongoDB)
         status = save_url_in_mongo(url)
-        is_url_present = status.get("is_url_present", True)
+        status.get("is_url_present", True)
         # Add any additional processing logic here
-    
     except Exception as e:
         print(f"Error processing URL: {e}")
 
@@ -50,6 +49,6 @@ async def get_colleges(request: Request):
     
     # Start processing URL in the background without waiting for it to complete
     asyncio.create_task(process_url(url))
+
+    return calculate_marks(url)
     
-    # Return immediate response to client
-    return {"message": "This page will be available soon!!"}

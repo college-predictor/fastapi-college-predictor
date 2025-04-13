@@ -3,6 +3,8 @@ from fastapi import HTTPException
 import requests
 from app.models.jee_main_model import JEEMainModel
 from app.config.database import MongoDB
+from app.utils.jee_main_answers import JEE_MAIN_ANSWERS
+from urllib.parse import urljoin
 
 # Connect to MongoDB
 db_client = MongoDB()
@@ -24,7 +26,7 @@ def extract_main_info(soup):
     return main_info
 
 # Function to handle Type 1 (MCQ questions)
-def parse_type_A_question(soup):
+def parse_type_A_question(soup, base_url):
     question_data = {}
 
     # Extract question number and image
@@ -57,7 +59,7 @@ def parse_type_A_question(soup):
 
 
 # Function to handle Type 2 (Short Answer questions)
-def parse_type_B_question(soup):
+def parse_type_B_question(soup, base_url):
     question_data = {}
 
     # Extract question number and image
@@ -103,7 +105,7 @@ def save_url_in_mongo(base_url):
         if not datetime_key:
             raise HTTPException(status_code=400, detail="Test Date or Test Time not found in the URL")
         
-        print(datetime_key)
+        # print(datetime_key)
         # Save URL to MongoDB
         is_url_present = jee_main_model.save_url(datetime_key, base_url)
         
@@ -112,6 +114,129 @@ def save_url_in_mongo(base_url):
             "message": "URL saved successfully",
             "datetime": datetime_key,
             "is_url_present": is_url_present
+        }
+    except Exception as e:
+        print(f"Error: {e}")
+        return HTTPException(status_code=400, detail=f"Error processing URL: {str(e)}")
+
+def calculate_marks(base_url):
+    # print(base_url)
+    try:
+        score_card = {
+            "answered_questions": 0,
+            "unanswered_questions": 0,
+            "wrong_answers": 0,
+            "physics_marks": 0,
+            "chemistry_marks": 0,
+            "maths_marks": 0,
+            "total_marks": 0,
+        }
+
+        # Fetch and parse the URL content
+        response = requests.get(base_url)
+        soup = BeautifulSoup(response.content, "html.parser")
+        main_info = extract_main_info(soup)
+        # Extract datetime information
+        test_date = main_info.get("Test Date")
+        test_time = main_info.get("Test Time")
+        datetime_key = f"{test_date} - {test_time}"
+        if not datetime_key or datetime_key not in JEE_MAIN_ANSWERS:
+            return {
+                "status": "error",
+                "message": f"{datetime_key} test answers not found"
+            }
+
+        questions = {}
+        for qpanel in soup.select("div.question-pnl"):
+            qno = qpanel.select_one("td.bold").text.strip()
+            
+            question_type = identify_question_type(qpanel.select_one("table"))
+            if question_type == "MCQ":
+                questions[qno] = parse_type_A_question(qpanel.select_one("table"), base_url)
+            else:
+                questions[qno] = parse_type_B_question(qpanel.select_one("table"), base_url)
+        data = []
+        i = 0
+        for k, ques in questions.items():
+            info = {
+                "question_number": i+1,
+                "question_type": ques["question_type"],
+                "question_id": ques["question_id"],
+                "question_img_url": ques["question_img_url"]
+            }
+            answer_id = JEE_MAIN_ANSWERS[datetime_key][ques["question_id"]]
+            question_type = ques["question_type"]
+
+            if question_type == "MCQ":
+                info["option_1_url"] = ques["options_url"][0]
+                info["option_2_url"] = ques["options_url"][1]
+                info["option_3_url"] = ques["options_url"][2]
+                info["option_4_url"] = ques["options_url"][3]
+                info["chosen_option"] = ques["chosen_option"]
+
+                # Add correct option information
+                if ques["option_1_id"] == answer_id:
+                    info["correct_option"] = "1"
+                elif ques["option_2_id"] == answer_id:
+                    info["correct_option"] = "2"
+                elif ques["option_3_id"] == answer_id:
+                    info["correct_option"] = "3"
+                elif ques["option_4_id"] == answer_id:
+                    info["correct_option"] = "4"
+                else:
+                    print("Error: Correct option not found")
+                    print(ques, answer_id)
+
+                if ques['status'] == "Not Answered":
+                    score_card["unanswered_questions"] += 1
+                    info["status"] = "Not Answered"
+                else:
+                    score_card["answered_questions"] += 1
+                    info["status"] = "Answered"
+
+                    selected_option_id = ""
+                    chosen_option = ques["chosen_option"]
+                    
+                    if chosen_option == "1":
+                        selected_option_id = ques["option_1_id"]
+                    elif chosen_option == "2":
+                        selected_option_id = ques["option_2_id"]
+                    elif chosen_option == "3":
+                        selected_option_id = ques["option_3_id"]
+                    elif chosen_option == "4":
+                        selected_option_id = ques["option_4_id"]
+
+                    if selected_option_id == answer_id:
+                        score_card["total_marks"] += 4
+                    else:
+                        score_card["wrong_answers"] += 1
+                        score_card["total_marks"] -= 1
+            else:
+                info["given_answer"] = ques["given_answer"]
+                if ques['status'] == "Not Answered":
+                    score_card["unanswered_questions"] += 1
+                    info["status"] = "Not Answered"
+                else:
+                    info["status"] = "Answered"
+                    info["correct_answer"] = answer_id
+
+                    score_card["answered_questions"] += 1
+
+                    given_answer = ques["given_answer"]
+                    if given_answer == answer_id:
+                        score_card["total_marks"] += 4
+                    else:
+                        score_card["wrong_answers"] += 1
+                        score_card["total_marks"] -= 1
+
+            data.append(info)
+            i += 1
+
+        return {
+            "status": "success",
+            "message": "Marks calculated successfully",
+            "data": data,
+            "score_card": score_card
         }
     except Exception as e:
         print(f"Error: {e}")
