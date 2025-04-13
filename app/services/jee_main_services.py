@@ -162,8 +162,7 @@ def calculate_marks(base_url):
                 "question_number": i+1,
                 "question_type": ques["question_type"],
                 "question_id": ques["question_id"],
-                "question_img_url": ques["question_img_url"],
-                "status": ques["status"],
+                "question_img_url": ques["question_img_url"]
             }
             answer_id = JEE_MAIN_ANSWERS[datetime_key][ques["question_id"]]
             question_type = ques["question_type"]
@@ -187,8 +186,10 @@ def calculate_marks(base_url):
 
                 if ques["chosen_option"] == "--":
                     score_card["unanswered_questions"] += 1
+                    info["status"] = "Not Answered"
                 else:
                     score_card["answered_questions"] += 1
+                    info["status"] = "Answered"
 
                     selected_option_id = ""
                     chosen_option = ques["chosen_option"]
@@ -231,7 +232,9 @@ def calculate_marks(base_url):
                 info["given_answer"] = ques["given_answer"]
                 if ques["given_answer"] == "--":
                     score_card["unanswered_questions"] += 1
+                    info["status"] = "Not Answered"
                 else:
+                    info["status"] = "Answered"
                     info["correct_answer"] = answer_id
 
                     score_card["answered_questions"] += 1
