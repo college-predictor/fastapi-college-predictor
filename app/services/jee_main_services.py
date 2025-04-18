@@ -3,7 +3,7 @@ from fastapi import HTTPException
 import requests
 from app.models.jee_main_model import JEEMainModel
 from app.config.database import MongoDB
-from app.utils.jee_main_answers import JEE_MAIN_ANSWERS
+from app.utils.jee_main_answers import JEE_MAIN_ANSWERS_FINAL
 from urllib.parse import urljoin
 
 # Connect to MongoDB
@@ -140,7 +140,7 @@ def calculate_marks(base_url):
         test_date = main_info.get("Test Date")
         test_time = main_info.get("Test Time")
         datetime_key = f"{test_date} - {test_time}"
-        if not datetime_key or datetime_key not in JEE_MAIN_ANSWERS:
+        if not datetime_key or datetime_key not in JEE_MAIN_ANSWERS_FINAL:
             return {
                 "status": "error",
                 "message": f"{datetime_key} test answers not found"
@@ -164,7 +164,7 @@ def calculate_marks(base_url):
                 "question_id": ques["question_id"],
                 "question_img_url": ques["question_img_url"]
             }
-            answer_id = JEE_MAIN_ANSWERS[datetime_key][ques["question_id"]]
+            answer_id = JEE_MAIN_ANSWERS_FINAL[datetime_key][ques["question_id"]]
             question_type = ques["question_type"]
 
             if question_type == "MCQ":
