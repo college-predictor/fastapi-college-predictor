@@ -86,3 +86,5 @@ dist/
 
 # Ignore node_modules if you use frontend framework alongside fastapi
 node_modules/
+
+*.pem
