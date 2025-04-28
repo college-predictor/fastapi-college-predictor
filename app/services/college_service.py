@@ -29,13 +29,13 @@ class CollegeService:
             
             if adv_gen_rank and required_category=="OPEN":
                 if required_gender=="Gender-Neutral" or required_gender==gender:
-                    if required_quota=="AI" or required_state==state:
+                    if required_quota=="OS" or required_quota=="AI" or required_state==state:
                         if adjusted_opening_rank< adv_gen_rank <adjusted_closing_rank:
                             filtered_colleges.append(college)
             
             if adv_cat_rank and required_category==category:
                 if required_gender=="Gender-Neutral" or required_gender==gender:
-                    if required_quota=="AI" or required_state==state:
+                    if required_quota=="OS" or required_quota=="AI" or required_state==state:
                         if adjusted_opening_rank< adv_cat_rank <adjusted_closing_rank:
                             filtered_colleges.append(college)
         return filtered_colleges
@@ -74,13 +74,13 @@ class CollegeService:
                     if required_quota=="OS" or required_quota=="AI" or required_state==state:
                         if adjusted_opening_rank< mains_gen_rank <adjusted_closing_rank:
                             if college_type == "NIT":
-                                print("NIT College Found")
+                                # print("NIT College Found")
                                 filtered_nit_colleges.append(college)
                             elif college_type == "IIIT":
-                                print("IIIT College Found")
+                                # print("IIIT College Found")
                                 filtered_iiit_colleges.append(college)
                             elif college_type == "GFTI":
-                                print("GFIT College Found")
+                                # print("GFIT College Found")
                                 filtered_gfti_colleges.append(college)
             #             elif college_type == "IIIT":
             #                 print("4Removed college", college_type)
@@ -93,7 +93,7 @@ class CollegeService:
             
             if mains_cat_rank and required_category==category:
                 if required_gender=="Gender-Neutral" or required_gender==gender:
-                    if required_quota=="OS" or required_state==state:
+                    if required_quota=="OS" or required_quota=="AI" or required_state==state:
                         if adjusted_opening_rank< mains_cat_rank <adjusted_closing_rank:
                             filtered_nit_colleges.append(college)
         return [filtered_nit_colleges, filtered_iiit_colleges, filtered_gfti_colleges]
