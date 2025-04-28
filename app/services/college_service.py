@@ -60,7 +60,8 @@ class CollegeService:
             required_quota = college.get("quota")
             college_type = college.get("collegeType")
             course_type = college.get("courseType")
-
+            # if college_type == "IIIT":
+            #     print("IIIT College Found")
             if "B.Arch" in course_type:
                 continue
 
@@ -70,15 +71,25 @@ class CollegeService:
             
             if mains_gen_rank and required_category=="OPEN":
                 if required_gender=="Gender-Neutral" or required_gender==gender:
-                    if required_quota=="OS" or required_state==state:
+                    if required_quota=="OS" or required_quota=="AI" or required_state==state:
                         if adjusted_opening_rank< mains_gen_rank <adjusted_closing_rank:
                             if college_type == "NIT":
-                                # print("NIT College: ", college)
+                                print("NIT College Found")
                                 filtered_nit_colleges.append(college)
                             elif college_type == "IIIT":
+                                print("IIIT College Found")
                                 filtered_iiit_colleges.append(college)
                             elif college_type == "GFTI":
+                                print("GFIT College Found")
                                 filtered_gfti_colleges.append(college)
+            #             elif college_type == "IIIT":
+            #                 print("4Removed college", college_type)
+            #         elif college_type == "IIIT":
+            #             print("3Removed college", college_type)
+            #     elif college_type == "IIIT":
+            #         print("2Removed college", college_type)
+            # elif college_type == "IIIT":
+            #     print("1 Removed college", college_type)
             
             if mains_cat_rank and required_category==category:
                 if required_gender=="Gender-Neutral" or required_gender==gender:

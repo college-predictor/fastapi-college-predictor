@@ -1,119 +1,234 @@
-from bisect import bisect_right
-from typing import List, Tuple, Dict
-
-# Each list is sorted by the general_rank (second element)
-OBC: List[Tuple[int, int]] = [
-    (0, 0), (5, 15), (2279, 10536), (2332, 10752), (2608, 11844),
-    (2773, 12478), (2972, 13167), (3374, 14652), (3402, 14756),
-    (3918, 16639), (4222, 17726), (5122, 20996), (5925, 23751),
-    (6062, 24235), (6666, 26268), (7112, 27770), (7649, 29631),
-    (7987, 30801), (9463, 35614), (10159, 37908), (10694, 39469),
-    (11057, 40678), (11317, 41562), (12155, 44442), (12419, 45319),
-    (12730, 46495), (14045, 50890), (14452, 52154), (14516, 52331),
-    (14590, 52569), (15897, 56573), (16926, 60019), (17135, 60715),
-    (17468, 61761), (17938, 63288), (18782, 65954), (18869, 66254),
-    (20902, 72793), (21103, 73432), (21347, 74154), (21729, 75529),
-    (21815, 75716), (22018, 76245), (22505, 77843), (22546, 77953),
-    (23080, 79647), (25099, 86184), (27554, 93549), (29142, 98463),
-    (32475, 108635), (32880, 109915), (34833, 115860), (35546, 118096),
-    (38482, 127042), (39090, 128915), (40332, 132645), (44233, 144556),
-    (44320, 144770), (45863, 149416), (47751, 155190), (48340, 156985),
-    (51140, 165317), (51141, 165317), (52602, 169664), (53727, 172949),
-    (54535, 174535), (54689, 174889), (55931, 179866), (59241, 189593),
-    (62376, 198736), (62736, 198729), (64948, 206231), (65410, 207004),
-    (71727, 225480), (72185, 226760), (76043, 237955), (77125, 241055),
-    (77903, 243272), (82942, 257741), (84370, 261850), (85266, 264421),
-    (97610, 299610), (99524, 304538), (105571, 321768), (108410, 329874),
-    (112734, 342064), (113597, 344528), (122744, 369585), (128522, 385433),
-    (128552, 385433), (131849, 394849), (138442, 413698), (243878, 693688),
-    (264745, 746465), (313589, 871721), (315973, 877608), (320706, 889469),
-]
-
-SC: List[Tuple[int,int]] = [
-    (0,0), (5,210), (1628,46279), (1840,51003), (2518,73388), (4201,98463),
-    (5503,114218), (5822,119217), (7109,133745), (7109,137745), (7292,140291),
-    (7292,140292), (7541,143248), (8518,156775), (9097,163954), (9160,164698),
-    (9382,170382), (9980,174981), (11760,197370), (12170,202754), (12526,207569),
-    (12927,212441), (12938,212534), (13181,215486), (14316,229007), (14639,232628),
-    (15238,240005), (15835,247017), (16018,249126), (16174,250863), (16651,256091),
-    (18042,272577), (21058,306118), (21079,306418), (21982,315782), (22132,318231),
-    (23205,328623), (23615,332881), (25151,348378), (26453,361914), (26621,363552),
-    (27674,372650), (30157,400156), (31879,417312), (33452,435627), (33721,435795),
-    (35309,451910), (43863,534002), (44682,542492), (65816,738071), (66505,744077),
-]
-
-ST: List[Tuple[int,int]] = [
-    (0,0), (5,1571), (718,73232), (807,77947), (1112,98636), (1276,107545),
-    (1484,119233), (2677,176045), (2781,181483), (2982,189630), (5094,270132),
-    (5466,288956), (5726,291455), (6215,306895), (6960,331947), (7090,335626),
-    (7347,343091), (11441,456720), (11669,462794), (13352,507777),
-]
-
-EWS: List[Tuple[int,int]] = [
-    (0,0), (5,15), (331,2660), (680,5542), (2691,19632), (3493,24794),
-    (4165,29397), (5164,35931), (5581,38695), (6869,46834), (6982,47855),
-    (8168,55750), (8875,59577), (9097,61192), (9250,63258), (9649,66170),
-    (10660,73083), (11119,76655), (12171,84181), (12451,86261), (12638,87558),
-    (12658,87715), (12669,87806), (12739,88335), (14438,100978), (15199,106624),
-    (15422,108420), (15567,109613), (15570,109613), (16036,113155),
-    (16873,119433), (17025,120699), (19160,138078), (19597,141442),
-    (19912,144118), (19951,144426), (20918,152537), (22737,167922),
-    (23544,174615), (23703,176045), (24256,180923), (24361,181659),
-    (24868,186354), (27416,209794), (27709,212541), (31808,252077),
-    (33111,264358), (33825,271194), (34959,282671), (36071,294743),
-    (38614,320890), (45701,396961), (51625,462528), (52708,477268),
-    (56017,518720), (58592,550740), (61738,592351), (64505,628714),
-    (66624,656762), (67005,662367), (77310,809742),
-]
-
-def _interpolate(table: List[Tuple[int,int]], gen_rank: int) -> int:
-    """
-    Given a sorted table of (cat_rank, gen_rank) and a target gen_rank,
-    find the two bracketing points and linearly interpolate the category rank.
-    """
-    # Extract the list of general_ranks
-    gen_list = [g for (_, g) in table]
-    idx = bisect_right(gen_list, gen_rank)
-
-    # If below the first point, extrapolate using first two
-    if idx == 0:
-        low_cat, low_gen = table[0]
-        high_cat, high_gen = table[1]
-    # If above last, extrapolate using last two
-    elif idx >= len(table):
-        low_cat, low_gen = table[-2]
-        high_cat, high_gen = table[-1]
-    # Otherwise bracketed between idx-1 and idx
-    else:
-        low_cat, low_gen = table[idx-1]
-        high_cat, high_gen = table[idx]
-
-    # Avoid division by zero if two general_ranks are identical
-    if high_gen == low_gen:
-        return low_cat
-
-    # Linear interpolation
-    ratio = (gen_rank - low_gen) / (high_gen - low_gen)
-    interpolated = low_cat + ratio * (high_cat - low_cat)
-    return int(interpolated)
-
-def convert_ranks(gen_rank: int) -> Dict[str, int]:
-    """
-    Convert a general rank into category-specific ranks for OBC, SC, ST, EWS.
-    Returns a dict: {'OBC': ..., 'SC': ..., 'ST': ..., 'EWS': ...}
-    """
-    return {
-        'OBC': _interpolate(OBC, gen_rank),
-        'SC':  _interpolate(SC,  gen_rank),
-        'ST':  _interpolate(ST,  gen_rank),
-        'EWS': _interpolate(EWS, gen_rank),
-    }
-
-# Example usage
-if __name__ == "__main__":
-    gen = int(input("Enter your general rank: "))
-    res = convert_ranks(gen)
-    print(f"OBC: {res['OBC']}")
-    print(f"EWS: {res['EWS']}")
-    print(f"SC:  {res['SC']}")
-    print(f"ST:  {res['ST']}")
+{
+    "iit_colleges": [
+        {
+            "aiSummary": "A premier engineering institute in India, known for its academic excellence and research contributions. It offers a wide range of undergraduate and postgraduate programs, fostering innovation and leadership. The institute is located in Mumbai and is renowned for its vibrant campus life and strong industry connections.",
+            "contactInfo": {
+                "name": "Deputy Registrar (Academic)",
+                "phone": "+91-22-25767987",
+                "email": "adlingesd@iitb.ac.in",
+                "address": "Powai, Mumbai 400076, Maharashtra, India"
+            },
+            "instituteCode": 102,
+            "collegeType": "IIT",
+            "collegeName": "Indian Institute of Technology Bombay",
+            "state": "Maharashtra",
+            "nirfRanking": 0,
+            "courseName": "Industrial Engineering and Operations Research (4 Years, Bachelor of Technology)",
+            "courseType": "B.Tech",
+            "gender": "Gender-Neutral",
+            "quota": "AI",
+            "category": "OPEN",
+            "openingRank": 1042,
+            "closingRank": 1726,
+            "profileImage": "https://placehold.co/300x300",
+            "avgPkg": "0 LPA",
+            "placementRating": 0,
+            "collegeLifeRating": 0,
+            "campusRating": 0,
+            "year": 2024,
+            "id": "2b6bb26a-c77f-11ef-b964-6a35931cdc08"
+        },
+        {
+            "aiSummary": "A premier engineering institute in India, known for its academic excellence and research contributions. It offers a wide range of undergraduate and postgraduate programs, fostering innovation and leadership. The institute is located in Mumbai and is renowned for its vibrant campus life and strong industry connections.",
+            "contactInfo": {
+                "name": "Deputy Registrar (Academic)",
+                "phone": "+91-22-25767987",
+                "email": "adlingesd@iitb.ac.in",
+                "address": "Powai, Mumbai 400076, Maharashtra, India"
+            },
+            "instituteCode": 102,
+            "collegeType": "IIT",
+            "collegeName": "Indian Institute of Technology Bombay",
+            "state": "Maharashtra",
+            "nirfRanking": 0,
+            "courseName": "Chemical Engineering (4 Years, Bachelor of Technology)",
+            "courseType": "B.Tech",
+            "gender": "Gender-Neutral",
+            "quota": "AI",
+            "category": "OPEN",
+            "openingRank": 650,
+            "closingRank": 2545,
+            "profileImage": "https://placehold.co/300x300",
+            "avgPkg": "0 LPA",
+            "placementRating": 0,
+            "collegeLifeRating": 0,
+            "campusRating": 0,
+            "year": 2024,
+            "id": "2b6a35fc-c77f-11ef-b964-6a35931cdc08"
+        }
+    ],
+    "nit_colleges": [
+        {
+            "aiSummary": "Established in 1987, this institute is a premier engineering and technology institution in India, recognized as an Institute of National Importance. It offers a range of undergraduate, postgraduate, and doctoral programs. The campus provides excellent facilities, including hostels, sports amenities, and cultural events, fostering a vibrant student life.",
+            "contactInfo": {
+                "name": "Dr Mamta Khosla",
+                "phone": "+91-9888604632",
+                "email": "as.daug@nitj.ac.in",
+                "address": "NIT Jalandhar - 144008, India"
+            },
+            "instituteCode": 201,
+            "collegeType": "NIT",
+            "collegeName": "Dr. B R Ambedkar National Institute of Technology, Jalandhar",
+            "state": "Punjab",
+            "nirfRanking": 0,
+            "courseName": "Computer Science and Engineering (4 Years, Bachelor of Technology)",
+            "courseType": "B.Tech",
+            "gender": "Gender-Neutral",
+            "quota": "OS",
+            "category": "OPEN",
+            "openingRank": 6330,
+            "closingRank": 10957,
+            "profileImage": "https://placehold.co/300x300",
+            "avgPkg": "0 LPA",
+            "placementRating": 0,
+            "collegeLifeRating": 0,
+            "campusRating": 0,
+            "year": 2024,
+            "id": "2b6a576c-c77f-11ef-b964-6a35931cdc08"
+        },
+        {
+            "aiSummary": "Established in 1987, this institute is a premier engineering and technology institution in India, recognized as an Institute of National Importance. It offers a range of undergraduate, postgraduate, and doctoral programs. The campus provides excellent facilities, including hostels, sports amenities, and cultural events, fostering a vibrant student life.",
+            "contactInfo": {
+                "name": "Dr Mamta Khosla",
+                "phone": "+91-9888604632",
+                "email": "as.daug@nitj.ac.in",
+                "address": "NIT Jalandhar - 144008, India"
+            },
+            "instituteCode": 201,
+            "collegeType": "NIT",
+            "collegeName": "Dr. B R Ambedkar National Institute of Technology, Jalandhar",
+            "state": "Punjab",
+            "nirfRanking": 0,
+            "courseName": "Information Technology (4 Years, Bachelor of Technology)",
+            "courseType": "B.Tech",
+            "gender": "Gender-Neutral",
+            "quota": "OS",
+            "category": "OPEN",
+            "openingRank": 10765,
+            "closingRank": 14120,
+            "profileImage": "https://placehold.co/300x300",
+            "avgPkg": "0 LPA",
+            "placementRating": 0,
+            "collegeLifeRating": 0,
+            "campusRating": 0,
+            "year": 2024,
+            "id": "2b6bdaf6-c77f-11ef-b964-6a35931cdc08"
+        }
+    ],
+    "iiit_colleges": [
+        {
+            "aiSummary": "The institution, established under the Ministry of Education, offers B.Tech, M.Tech, and Ph.D. programs in various fields. It is recognized as an Institute of National Importance and ranks among the top IIITs in India. The campus provides modern facilities, including labs, libraries, and hostels, fostering a conducive learning environment.",
+            "contactInfo": {
+                "name": "Dr. Rusha Patra",
+                "phone": "+91-03612801090",
+                "email": "admissions@iiitg.ac.in",
+                "address": "Bongora, Guwahati 781015"
+            },
+            "instituteCode": 303,
+            "collegeType": "IIIT",
+            "collegeName": "Indian Institute of Information Technology Guwahati",
+            "state": "Assam",
+            "nirfRanking": 0,
+            "courseName": "Computer Science and Engineering (4 Years, Bachelor of Technology)",
+            "courseType": "B.Tech",
+            "gender": "Gender-Neutral",
+            "quota": "AI",
+            "category": "OPEN",
+            "openingRank": 8898,
+            "closingRank": 20821,
+            "profileImage": "https://placehold.co/300x300",
+            "avgPkg": "0 LPA",
+            "placementRating": 0,
+            "collegeLifeRating": 0,
+            "campusRating": 0,
+            "year": 2024,
+            "id": "2b6af8d4-c77f-11ef-b964-6a35931cdc08"
+        },
+        {
+            "aiSummary": "The institute is a premier Indian Institute of Information Technology located in Gwalior, Madhya Pradesh. It offers a range of undergraduate and integrated programs. Known for its strong industry connections, it collaborates with numerous top-tier companies, providing students with excellent placement opportunities.",
+            "contactInfo": {
+                "name": "Pankaj Gupta",
+                "phone": "+91-751-2449720",
+                "email": "pankaj@iiitm.ac.in",
+                "address": "Morena Link Road, 474015, Gwalior, Madhya Pradesh"
+            },
+            "instituteCode": 301,
+            "collegeType": "IIIT",
+            "collegeName": "Atal Bihari Vajpayee Indian Institute of Information Technology & Management Gwalior",
+            "state": "Madhya Pradesh",
+            "nirfRanking": 0,
+            "courseName": "Integrated B. Tech.(IT) and M. Tech (IT) (5 Years, Integrated B. Tech. and M. Tech.)",
+            "courseType": "B.Tech + M.Tech",
+            "gender": "Gender-Neutral",
+            "quota": "AI",
+            "category": "OPEN",
+            "openingRank": 9708,
+            "closingRank": 13577,
+            "profileImage": "https://placehold.co/300x300",
+            "avgPkg": "0 LPA",
+            "placementRating": 0,
+            "collegeLifeRating": 0,
+            "campusRating": 0,
+            "year": 2024,
+            "id": "2b6817c2-c77f-11ef-b964-6a35931cdc08"
+        }
+    ],
+    "gfti_colleges": [
+        {
+            "aiSummary": "Established in 1955 by B.M. Birla, this premier technical institute is a deemed university located in a sprawling 780-acre campus near Ranchi, Jharkhand. Known for its academic excellence, it offers a wide range of undergraduate, postgraduate, and doctoral programs, and boasts a vibrant student life with extensive facilities and strong industry connections.",
+            "contactInfo": {
+                "name": "Dr. Sudip Das",
+                "phone": "+91-651-2275868",
+                "email": "daac@bitmesra.ac.in",
+                "address": "Birla Institute of Technology, Mesra, Ranchi - 835215, Jharkhand"
+            },
+            "instituteCode": 402,
+            "collegeType": "GFTI",
+            "collegeName": "Birla Institute of Technology, Mesra, Ranchi",
+            "state": "Jharkhand",
+            "nirfRanking": 0,
+            "courseName": "Computer Science and Engineering (4 Years, Bachelor of Technology)",
+            "courseType": "B.Tech",
+            "gender": "Gender-Neutral",
+            "quota": "AI",
+            "category": "OPEN",
+            "openingRank": 10209,
+            "closingRank": 18030,
+            "profileImage": "https://placehold.co/300x300",
+            "avgPkg": "0 LPA",
+            "placementRating": 0,
+            "collegeLifeRating": 0,
+            "campusRating": 0,
+            "year": 2024,
+            "id": "2b6ab19e-c77f-11ef-b964-6a35931cdc08"
+        },
+        {
+            "aiSummary": "Located in Chandigarh, this esteemed institution has a rich history dating back to its roots in Lahore. It offers a robust academic curriculum similar to IITs, emphasizing industry engagement, research, and development. The campus spans 149 acres with modern facilities, fostering a conducive learning environment and vibrant student life.",
+            "contactInfo": {
+                "name": "Dr. Sanjay Batish",
+                "phone": "+91-8699966880",
+                "email": "admissions@pec.edu.in",
+                "address": "Sector 12, Chandigarh 160012"
+            },
+            "instituteCode": 422,
+            "collegeType": "GFTI",
+            "collegeName": "Punjab Engineering College, Chandigarh",
+            "state": "Chandigarh",
+            "nirfRanking": 0,
+            "courseName": "Computer Science Engineering (Artificial Intelligence) (4 Years, B. Tech / B. Tech (Hons.))",
+            "courseType": "B.Tech",
+            "gender": "Gender-Neutral",
+            "quota": "OS",
+            "category": "OPEN",
+            "openingRank": 7865,
+            "closingRank": 11603,
+            "profileImage": "https://placehold.co/300x300",
+            "avgPkg": "0 LPA",
+            "placementRating": 0,
+            "collegeLifeRating": 0,
+            "campusRating": 0,
+            "year": 2024,
+            "id": "2b70c264-c77f-11ef-b964-6a35931cdc08"
+        }
+    ]
+}
