@@ -27,6 +27,11 @@ def get_colleges(
     Fetches colleges based on provided rank criteria.
     API key validation is required.
     """
+    if gender == "Female":
+        gender = "Female-only (including Supernumerary)"
+    else:
+        gender = "Gender-Neutral"
+        
     iit_colleges = college_service.fetch_iit_colleges(
         adv_gen_rank=adv_gen_rank,
         adv_cat_rank=adv_cat_rank,

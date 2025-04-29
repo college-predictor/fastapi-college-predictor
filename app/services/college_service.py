@@ -14,15 +14,11 @@ class CollegeService:
         for college in colleges:
             opening_rank = college.get("openingRank")
             closing_rank = college.get("closingRank")
+            required_gender = college.get("gender")
             required_category = college.get("category")
             required_state = college.get("state")
             required_quota = college.get("quota")
             course_type = college.get("courseType")
-
-            if college.get("gender") == "Male":
-                required_gender = "Gender-Neutral"
-            else:
-                required_gender = "Female-only (including Supernumerary)"
 
             if "B.Arch" in course_type:
                 continue
