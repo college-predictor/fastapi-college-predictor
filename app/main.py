@@ -22,7 +22,7 @@ app.add_middleware(
 # Include routers
 app.include_router(colleges_router.router, prefix="/api", tags=["Colleges"])
 # app.include_router(news_router.router, prefix="/api", tags=["News"])
-app.include_router(chat_router.router, prefix="/api", tags=["Chat"])
+# app.include_router(chat_router.router, prefix="/api", tags=["Chat"])
 app.include_router(discussion_forum_router.router, prefix="/api", tags=["Discussion Forum"])
 app.include_router(features_router.router, prefix="/api", tags=["Features"])
 app.include_router(jee_main_router.router, prefix="/api", tags=["JEE-Mains"])
